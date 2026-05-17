@@ -15,9 +15,9 @@ Audience: solo builder (me). Single-tenant. Single environment to start.
 | Framework | Next.js (App Router) | Full-stack React, file-based routing, server components, Vercel-native |
 | Runtime | Fluid Compute on Vercel | Node 24 LTS, 300s default timeout, shared instances reduce cold starts |
 | Language | TypeScript everywhere | Type safety across schema, workers, UI |
-| Structured data | Postgres (via Vercel Marketplace — Neon or Supabase) | Relational anchor for Candidate, Application, Artifact, Event, Recruiter, Interview |
-| ORM | Prisma | Schema-first, migrations, good DX |
-| Object storage | Vercel Blob (private) | Master CV files, generated PDF artifacts |
+| Structured data | Postgres + pgvector (local Docker for dev; Railway for prod) | Relational anchor for Candidate, Application, Artifact, Event, Recruiter, Interview |
+| ORM | Prisma 7 | Schema-first, migrations, good DX |
+| Object storage | Google Cloud Storage (private bucket) | Master CV files, generated PDF artifacts |
 | Event bus | Vercel Queues (beta) or DB-backed event table | Durable events; start with DB table, migrate to Queues when needed |
 | Background jobs | Vercel Cron (scheduled) + Queues (event-driven) | Cron for always-on workers, Queues for per-app / per-interview workers |
 | LLM access | Vercel AI Gateway (`provider/model` strings) | Unified API, observability, fallbacks, no provider lock-in |
@@ -37,7 +37,7 @@ Audience: solo builder (me). Single-tenant. Single environment to start.
 
 The `PRODUCT.md` defines five architectural primitives:
 
-1. **Persistent memory** → Postgres + pgvector + Blob. Structured tables for canonical entities, vector embeddings for semantic retrieval, Blob for binary artifacts.
+1. **Persistent memory** → Postgres + pgvector + GCS. Structured tables for canonical entities, vector embeddings for semantic retrieval, GCS for binary artifacts.
 2. **Application-centered orchestration** → every event row carries an `application_id` foreign key. Application is a first-class table.
 3. **Event-driven cognition** → durable `events` table → workers consume via Queues. Workers never call each other directly.
 4. **Approval-governed automation** → `approval_state` enum on artifacts; every outbound action has an explicit `pending_review` step before any externally visible operation.
@@ -51,7 +51,7 @@ Detailed Prisma schema lives in code (forthcoming). Conceptual entities:
 
 ### Core entities
 - `Candidate` — single row in v1 (me)
-- `MasterCV` — structured fields + Blob reference to source PDF
+- `MasterCV` — structured fields + GCS reference to source PDF
 - `RolePreference` — target roles, industries, comp, geo, work auth
 - `Opportunity` — discovered/manual jobs, ranked, with JD text + source
 - `Application` — **the operational anchor**, references `Opportunity`, owns lifecycle state
@@ -206,14 +206,15 @@ Model choice is per-worker config, easy to change. Prompt caching enabled where 
 ### Postgres (relational + vector)
 Everything structured + embeddings. Single datastore minimizes ops overhead for solo build.
 
-### Vercel Blob (private)
+### Google Cloud Storage (private bucket)
 - Source Master CV PDF
 - Generated resume / cover letter PDFs (after approval)
 - Any user-uploaded supporting docs
 
 ### Naming
-- All Blob refs stored as foreign keys on the relevant entity row.
+- All GCS object URIs stored as foreign keys on the relevant entity row.
 - Never store binary data in Postgres rows.
+- Service account key (`gcs-service-account.json`) is gitignored.
 
 ---
 
@@ -253,7 +254,7 @@ No Datadog / Sentry / OTel in v1. Add when something breaks that the above can't
 ## 11. Security / privacy
 
 Single-tenant, single-user, but still:
-- Master CV + generated artifacts contain personal data — keep all Blob refs private
+- Master CV + generated artifacts contain personal data — keep all GCS objects private (no public ACLs)
 - Recruiter messages contain third-party PII — same
 - No telemetry of artifact content to external services beyond LLM calls (and those go through Gateway with zero data retention)
 - Approval gate prevents accidental outbound to wrong recipient

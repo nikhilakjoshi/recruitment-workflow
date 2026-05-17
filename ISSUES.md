@@ -160,13 +160,14 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
   - [ ] `registerWorker()` adds to registry
   - [ ] Stub no-op worker passes through the dispatcher
 
-### #10 Vercel Blob setup + Master CV upload route
+### #10 GCS setup + Master CV upload route
 - **Labels:** `manual`, `slice-0-foundation`, `area:infra`
-- **Goal:** Blob configured, route for uploading Master CV PDF returning blob URL.
+- **Goal:** GCS bucket + service account configured, route for uploading Master CV PDF returning gs:// URI.
 - **Acceptance:**
-  - [ ] `BLOB_READ_WRITE_TOKEN` set
-  - [ ] `app/api/upload/master-cv/route.ts` accepts PDF, stores private, returns ref
-  - [ ] Stored ref written to `MasterCV.blobUrl`
+  - [ ] `GCS_PROJECT_ID`, `GCS_BUCKET`, `GCS_KEY_FILE` set in `.env.local`
+  - [ ] `gcs-service-account.json` placed locally (gitignored)
+  - [ ] `app/api/upload/master-cv/route.ts` accepts PDF, uploads to bucket as private, returns `gs://` URI + signed-URL helper
+  - [ ] Stored URI written to `MasterCV.gcsUri`
 
 ### #11 AI Gateway client wrapper
 - **Labels:** `sandcastle`, `slice-0-foundation`, `area:worker`, `area:integration`
@@ -325,11 +326,11 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 ### #26 PDF rendering pipeline
 - **Labels:** `sandcastle`, `slice-3-resume-builder`, `area:integration`
 - **Plan:** `plans/slice-3-resume-builder/26-pdf.md`
-- **Goal:** render approved resume JSON → PDF, store in Blob.
+- **Goal:** render approved resume JSON → PDF, store in GCS.
 - **Acceptance:**
   - [ ] Choice between Puppeteer (Vercel-compatible) and react-pdf documented + picked
   - [ ] Approved resume produces a downloadable PDF
-  - [ ] PDF URL written to `Artifact.blobUrl`
+  - [ ] PDF URI written to `Artifact.gcsUri`
   - [ ] Re-approval after edit produces new PDF version
 
 ### #27 Approval gate integration for tailored resume

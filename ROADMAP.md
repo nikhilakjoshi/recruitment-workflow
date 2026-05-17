@@ -27,7 +27,7 @@ The 8 workers don't all need to exist for the product to be valuable. The Match 
 - Schema for: `Candidate`, `MasterCV`, `RolePreference`, `Opportunity`, `Application`, `Artifact`, `Event`, `Recruiter`, `Interview`
 - Append-only `events` table + simple dispatcher
 - Application state machine (12 states, transitions only via functions)
-- Blob storage for Master CV upload
+- GCS bucket for Master CV upload
 - shadcn/ui scaffolding + base routes
 - Profile page: upload Master CV, define role prefs (target roles, comp, geo, work auth)
 
@@ -72,12 +72,12 @@ This slice is the **honesty test** for the product. If running my job search man
 
 - Subscribes to `JobShortlisted` (or manual "Generate Tailored Resume" trigger after Match Scorer runs)
 - Scoped memory: Master CV + JD + role preferences + match scorer output
-- Output: tailored resume as structured content + rendered PDF (Blob)
+- Output: tailored resume as structured content + rendered PDF (GCS)
 - Versioning + lineage (every regeneration is a new version)
 - Approval gate: approve, reject, edit, regenerate, compare versions
 - Editor for inline tweaks before approval
 
-**Shipped when:** for any pasted JD I get a tailored resume I'd actually submit. Regeneration preserves lineage. Approved version stored as Blob PDF.
+**Shipped when:** for any pasted JD I get a tailored resume I'd actually submit. Regeneration preserves lineage. Approved version stored in GCS as PDF.
 
 ---
 

@@ -38,6 +38,17 @@ The product is:
 - **Builder:** solo. Just me.
 - **Strategy:** finish building the product first, then revisit scale/concurrency/budget. Architectural decisions should not paint into a corner, but premature optimization is parked.
 
+## Local development
+
+```bash
+docker compose up -d        # Postgres + pgvector on localhost:5433
+pnpm install
+pnpm exec prisma db push    # apply current schema
+pnpm dev                    # Next.js dev server (default port 3000)
+```
+
+Environment template: `.env.example`. Local `.env` uses the dockerized Postgres.
+
 ---
 
 ## Documentation map

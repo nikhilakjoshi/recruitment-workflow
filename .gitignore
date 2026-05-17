@@ -57,6 +57,10 @@ pnpm-debug.log*
 .sandcastle/sessions/
 .sandcastle/worktrees/
 
+# gcs service account key
+gcs-service-account.json
+gcs-*.json
+
 # misc
 *.pem
 
