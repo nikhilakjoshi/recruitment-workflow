@@ -10,6 +10,9 @@ Source-of-truth list of every issue to be created on GitHub before any code is w
 ## Goal
 <one sentence>
 
+## Blocked by
+<list of issue numbers, or "none">
+
 ## Acceptance criteria
 - [ ] <criterion>
 - [ ] <criterion>
@@ -33,7 +36,7 @@ See `plans/slice-<n>-<slug>/<issue-slug>.md` for full context.
 ### Labels
 
 **Routing (mutually exclusive):**
-- `sandcastle` — eligible for Sandcastle pickup. Must have a plan file.
+- `sandcastle` — eligible for Sandcastle pickup. Must have a plan file. **Apply only when all upstream `Blocked by` issues are closed.**
 - `manual` — I do it directly. No plan file required.
 
 **Slice (one per issue):**
@@ -53,6 +56,13 @@ See `plans/slice-<n>-<slug>/<issue-slug>.md` for full context.
 
 **Lifecycle (Sandcastle owns these — created automatically):**
 - `sandcastle:planned`, `sandcastle:in-progress`, `sandcastle:review`, `sandcastle:done`
+
+### Dependency enforcement (two layers, both required)
+
+1. **In-issue marker** — every issue declares `Blocked by: #N, #M` (or `none`). The RALPH agent in `.sandcastle/implement-prompt.md` is instructed to "Pick the highest-priority open issue that is not blocked by another open issue" and reads issue bodies to enforce this.
+2. **Staged labelling** — only apply the `sandcastle` label to issues whose `Blocked by` list is fully closed. As each PR merges, relabel the newly-unblocked downstream issues.
+
+This belt-and-braces approach means the agent can't pick a blocked issue even if you forget to update labels — and the agent has nothing to pick from when only ready issues are labelled.
 
 ### Plan file pattern (for `sandcastle`-labelled issues)
 
@@ -75,6 +85,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #1 Initialize Next.js + Vercel project
 - **Labels:** `manual`, `slice-0-foundation`, `area:infra`
+- **Blocked by:** none (root)
 - **Goal:** scaffold a Next.js App Router project, configure for Vercel deployment, set up TypeScript strict mode.
 - **Acceptance:**
   - [ ] `pnpm create next-app` with App Router, TS, Tailwind, ESLint
@@ -83,6 +94,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #2 Install shadcn/ui + base components
 - **Labels:** `manual`, `slice-0-foundation`, `area:ui`
+- **Blocked by:** #1
 - **Goal:** install shadcn with Tailwind config, pull in baseline primitives.
 - **Acceptance:**
   - [ ] shadcn initialized with default config
@@ -91,6 +103,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #3 Connect Railway Postgres + Prisma setup
 - **Labels:** `manual`, `slice-0-foundation`, `area:schema`, `area:infra`
+- **Blocked by:** #1
 - **Goal:** Prisma installed, connected to Railway Postgres, initial migration runs.
 - **Acceptance:**
   - [ ] `DATABASE_URL` in `.env.local` + Vercel env
@@ -100,6 +113,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #4 Define core Prisma schema (Candidate, MasterCV, RolePreference, Opportunity, Application, Artifact, Recruiter, Interview, Event, Insight)
 - **Labels:** `sandcastle`, `slice-0-foundation`, `area:schema`
+- **Blocked by:** #3
 - **Plan:** `plans/slice-0-foundation/04-core-schema.md`
 - **Goal:** translate ARCHITECTURE.md §3 conceptual schema into a working `schema.prisma`.
 - **Acceptance:**
@@ -111,6 +125,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #5 Roll-your-own auth + User table
 - **Labels:** `sandcastle`, `slice-0-foundation`, `area:auth`, `area:schema`
+- **Blocked by:** #4
 - **Plan:** `plans/slice-0-foundation/05-auth.md`
 - **Goal:** simple email/password (or magic-link) auth for a single user, with a `User` table linked 1:1 to `Candidate`.
 - **Acceptance:**
@@ -121,6 +136,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #6 Event log table + append-only invariant
 - **Labels:** `sandcastle`, `slice-0-foundation`, `area:event-bus`
+- **Blocked by:** #4
 - **Plan:** `plans/slice-0-foundation/06-event-log.md`
 - **Goal:** durable `events` table with append-only constraint, plus a typed `emitEvent()` helper.
 - **Acceptance:**
@@ -131,6 +147,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #7 Event dispatcher (DB-polling, simple)
 - **Labels:** `sandcastle`, `slice-0-foundation`, `area:event-bus`
+- **Blocked by:** #6, #9
 - **Plan:** `plans/slice-0-foundation/07-dispatcher.md`
 - **Goal:** Vercel Cron that polls `events` for unprocessed rows, invokes subscribed workers, marks consumed.
 - **Acceptance:**
@@ -141,6 +158,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #8 Application state machine
 - **Labels:** `sandcastle`, `slice-0-foundation`, `area:schema`, `area:event-bus`
+- **Blocked by:** #4, #6
 - **Plan:** `plans/slice-0-foundation/08-state-machine.md`
 - **Goal:** pure-TS state machine for 12 Application states with transition guards.
 - **Acceptance:**
@@ -152,6 +170,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #9 Worker runtime interface + types
 - **Labels:** `sandcastle`, `slice-0-foundation`, `area:worker`
+- **Blocked by:** #4, #6
 - **Plan:** `plans/slice-0-foundation/09-worker-runtime.md`
 - **Goal:** TS types and base class for all workers per ARCHITECTURE §5.
 - **Acceptance:**
@@ -162,6 +181,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #10 GCS setup + Master CV upload route
 - **Labels:** `manual`, `slice-0-foundation`, `area:infra`
+- **Blocked by:** #1
 - **Goal:** GCS bucket + service account configured, route for uploading Master CV PDF returning gs:// URI.
 - **Acceptance:**
   - [ ] `GCS_PROJECT_ID`, `GCS_BUCKET`, `GCS_KEY_FILE` set in `.env.local`
@@ -171,6 +191,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #11 AI Gateway client wrapper
 - **Labels:** `sandcastle`, `slice-0-foundation`, `area:worker`, `area:integration`
+- **Blocked by:** #1
 - **Plan:** `plans/slice-0-foundation/11-ai-gateway.md`
 - **Goal:** typed wrapper for AI Gateway with model routing per ARCHITECTURE §7.
 - **Acceptance:**
@@ -181,6 +202,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #12 Base layout + navigation shell
 - **Labels:** `sandcastle`, `slice-0-foundation`, `area:ui`
+- **Blocked by:** #2
 - **Plan:** `plans/slice-0-foundation/12-layout.md`
 - **Goal:** App-shell layout with sidebar (Dashboard, Opportunities, Applications, Interviews, Artifacts, Insights, Profile) per PRODUCT.md §16.
 - **Acceptance:**
@@ -190,6 +212,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #13 Initialize Sandcastle
 - **Labels:** `manual`, `slice-0-foundation`, `area:infra`
+- **Blocked by:** #1
 - **Goal:** `sandcastle init` configured for Docker + GitHub Issues backlog.
 - **Acceptance:**
   - [ ] `.sandcastle/` directory committed
@@ -204,6 +227,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #14 Profile page: Master CV upload + role prefs form
 - **Labels:** `sandcastle`, `slice-1-manual-flow`, `area:ui`, `area:schema`
+- **Blocked by:** #4, #5, #10, #12
 - **Plan:** `plans/slice-1-manual-flow/14-profile.md`
 - **Goal:** `/profile` page with CV upload, role preferences form (target roles, industries, comp, geo, work auth).
 - **Acceptance:**
@@ -214,6 +238,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #15 Opportunities page: manual JD paste flow
 - **Labels:** `sandcastle`, `slice-1-manual-flow`, `area:ui`
+- **Blocked by:** #4, #6, #12
 - **Plan:** `plans/slice-1-manual-flow/15-opportunities.md`
 - **Goal:** `/opportunities` lists discovered + shortlisted; "Add manually" creates `Opportunity` from pasted JD.
 - **Acceptance:**
@@ -224,6 +249,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #16 Application creation from shortlist
 - **Labels:** `sandcastle`, `slice-1-manual-flow`, `area:event-bus`, `area:schema`
+- **Blocked by:** #7, #8, #15
 - **Plan:** `plans/slice-1-manual-flow/16-app-create.md`
 - **Goal:** shortlisting an opportunity creates an `Application` row in `Shortlisted` state.
 - **Acceptance:**
@@ -233,6 +259,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #17 Application detail page (workspace)
 - **Labels:** `sandcastle`, `slice-1-manual-flow`, `area:ui`
+- **Blocked by:** #12, #16
 - **Plan:** `plans/slice-1-manual-flow/17-app-workspace.md`
 - **Goal:** `/applications/[id]` shows JD, state, artifact list (empty), interview list (empty), event timeline.
 - **Acceptance:**
@@ -242,6 +269,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #18 Approval gate modal component
 - **Labels:** `sandcastle`, `slice-1-manual-flow`, `area:approval-gate`, `area:ui`
+- **Blocked by:** #4, #12
 - **Plan:** `plans/slice-1-manual-flow/18-approval-modal.md`
 - **Goal:** reusable `<ApprovalGate artifact={...}>` modal: approve / reject / edit / regenerate / compare.
 - **Acceptance:**
@@ -253,6 +281,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #19 Manual artifact upload
 - **Labels:** `sandcastle`, `slice-1-manual-flow`, `area:ui`
+- **Blocked by:** #10, #17, #18
 - **Plan:** `plans/slice-1-manual-flow/19-manual-artifact.md`
 - **Goal:** upload a CV/cover letter PDF directly to an Application, bypassing workers.
 - **Acceptance:**
@@ -262,6 +291,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #20 Manual state transitions for full lifecycle test
 - **Labels:** `manual`, `slice-1-manual-flow`
+- **Blocked by:** #14, #15, #16, #17, #18, #19
 - **Goal:** end-to-end smoke test: manually run a real application from Discovered to Archived.
 - **Acceptance:**
   - [ ] Document the run in a short README note
@@ -273,6 +303,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #21 Scoped memory resolver
 - **Labels:** `sandcastle`, `slice-2-match-scorer`, `area:worker`
+- **Blocked by:** #4, #9
 - **Plan:** `plans/slice-2-match-scorer/21-memory-resolver.md`
 - **Goal:** `resolveScopedMemory(worker, event)` returns the exact context blob a worker should receive.
 - **Acceptance:**
@@ -282,6 +313,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #22 Resume Match Scorer worker
 - **Labels:** `sandcastle`, `slice-2-match-scorer`, `area:worker`
+- **Blocked by:** #8, #11, #15, #21
 - **Plan:** `plans/slice-2-match-scorer/22-scorer.md`
 - **Goal:** subscribes to `JobShortlisted`, scores fit, writes `Artifact` of type `evaluation`.
 - **Acceptance:**
@@ -292,6 +324,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #23 Match Scorer UI surface on Application workspace
 - **Labels:** `sandcastle`, `slice-2-match-scorer`, `area:ui`
+- **Blocked by:** #17, #22
 - **Plan:** `plans/slice-2-match-scorer/23-scorer-ui.md`
 - **Goal:** evaluation panel on `/applications/[id]` showing score, strengths, gaps.
 - **Acceptance:**
@@ -305,6 +338,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #24 Tailored Resume Builder worker
 - **Labels:** `sandcastle`, `slice-3-resume-builder`, `area:worker`
+- **Blocked by:** #9, #11, #22
 - **Plan:** `plans/slice-3-resume-builder/24-builder.md`
 - **Goal:** generate role-specific tailored resume from Master CV + JD + evaluation.
 - **Acceptance:**
@@ -316,6 +350,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #25 Resume editor (structured)
 - **Labels:** `sandcastle`, `slice-3-resume-builder`, `area:ui`
+- **Blocked by:** #18, #24
 - **Plan:** `plans/slice-3-resume-builder/25-editor.md`
 - **Goal:** edit structured resume JSON section-by-section; live preview.
 - **Acceptance:**
@@ -325,6 +360,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #26 PDF rendering pipeline
 - **Labels:** `sandcastle`, `slice-3-resume-builder`, `area:integration`
+- **Blocked by:** #10, #24
 - **Plan:** `plans/slice-3-resume-builder/26-pdf.md`
 - **Goal:** render approved resume JSON → PDF, store in GCS.
 - **Acceptance:**
@@ -335,6 +371,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #27 Approval gate integration for tailored resume
 - **Labels:** `sandcastle`, `slice-3-resume-builder`, `area:approval-gate`
+- **Blocked by:** #18, #24
 - **Plan:** `plans/slice-3-resume-builder/27-approval.md`
 - **Goal:** approval gate wired specifically for tailored-resume artifacts.
 - **Acceptance:**
@@ -348,6 +385,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #28 Cover Letter Generator worker
 - **Labels:** `sandcastle`, `slice-4-cover-letter`, `area:worker`
+- **Blocked by:** #9, #11, #24
 - **Plan:** `plans/slice-4-cover-letter/28-worker.md`
 - **Goal:** generate cover letter from approved resume + JD + role prefs.
 - **Acceptance:**
@@ -357,6 +395,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #29 Cover Letter editor + PDF
 - **Labels:** `sandcastle`, `slice-4-cover-letter`, `area:ui`, `area:integration`
+- **Blocked by:** #26, #28
 - **Plan:** `plans/slice-4-cover-letter/29-editor-pdf.md`
 - **Goal:** rich-text editor for cover letter + PDF export reusing Slice 3 pipeline.
 - **Acceptance:**
@@ -370,6 +409,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #30 Stale detection + follow-up reminder worker
 - **Labels:** `sandcastle`, `slice-5-tracker`, `area:worker`
+- **Blocked by:** #9, #16
 - **Plan:** `plans/slice-5-tracker/30-tracker.md`
 - **Goal:** cron worker that flags stale Applications + generates follow-up reminders.
 - **Acceptance:**
@@ -379,6 +419,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #31 Weekly digest job
 - **Labels:** `sandcastle`, `slice-5-tracker`, `area:worker`, `area:integration`
+- **Blocked by:** #4, #30
 - **Plan:** `plans/slice-5-tracker/31-digest.md`
 - **Goal:** weekly cron generates a summary email/in-app card.
 - **Acceptance:**
@@ -387,6 +428,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #32 Dashboard sections wiring
 - **Labels:** `sandcastle`, `slice-5-tracker`, `area:ui`
+- **Blocked by:** #12, #30
 - **Plan:** `plans/slice-5-tracker/32-dashboard.md`
 - **Goal:** fill in Dashboard per PRODUCT.md §18.
 - **Acceptance:**
@@ -399,11 +441,13 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #33 Scraping strategy spike
 - **Labels:** `manual`, `slice-6-aggregator`, `area:integration`
+- **Blocked by:** none (decision doc, can happen any time)
 - **Goal:** decide self-hosted Playwright vs. Bright Data / Apify; document.
 - **Acceptance:** decision doc in `plans/slice-6-aggregator/33-scraping.md`
 
 ### #34 Job Alert Aggregator worker
 - **Labels:** `sandcastle`, `slice-6-aggregator`, `area:worker`
+- **Blocked by:** #11, #15, #33
 - **Plan:** `plans/slice-6-aggregator/34-aggregator.md`
 - **Goal:** scheduled scrape → rank against role prefs → write Opportunities.
 - **Acceptance:**
@@ -414,6 +458,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #35 Opportunity digest UI
 - **Labels:** `sandcastle`, `slice-6-aggregator`, `area:ui`
+- **Blocked by:** #32, #34
 - **Plan:** `plans/slice-6-aggregator/35-digest-ui.md`
 - **Goal:** daily digest card on Dashboard with one-click shortlist.
 - **Acceptance:**
@@ -426,6 +471,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #36 Recruiter reply + interview scheduling capture
 - **Labels:** `sandcastle`, `slice-7-interview`, `area:ui`
+- **Blocked by:** #6, #17
 - **Plan:** `plans/slice-7-interview/36-capture.md`
 - **Goal:** UI to manually log recruiter replies + scheduled interviews on an Application.
 - **Acceptance:**
@@ -435,6 +481,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #37 Company Research Assistant worker
 - **Labels:** `sandcastle`, `slice-7-interview`, `area:worker`, `area:integration`
+- **Blocked by:** #9, #11, #36
 - **Plan:** `plans/slice-7-interview/37-research.md`
 - **Goal:** generate company research doc (business model, news, smart questions).
 - **Acceptance:**
@@ -443,6 +490,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #38 Interview Prep Assistant worker
 - **Labels:** `sandcastle`, `slice-7-interview`, `area:worker`
+- **Blocked by:** #9, #11, #36
 - **Plan:** `plans/slice-7-interview/38-prep.md`
 - **Goal:** generate role-specific question bank + STAR prompts using career history.
 - **Acceptance:**
@@ -451,6 +499,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #39 Interview workspace UI
 - **Labels:** `sandcastle`, `slice-7-interview`, `area:ui`
+- **Blocked by:** #17, #36
 - **Plan:** `plans/slice-7-interview/39-workspace.md`
 - **Goal:** `/applications/[id]/interviews/[interviewId]` workspace with prep + notes + outcome.
 - **Acceptance:**
@@ -463,6 +512,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #40 LinkedIn Optimizer worker + manual paste flow
 - **Labels:** `sandcastle`, `slice-8-linkedin`, `area:worker`, `area:ui`
+- **Blocked by:** #11, #14, #18
 - **Plan:** `plans/slice-8-linkedin/40-optimizer.md`
 - **Goal:** paste current LinkedIn → suggestions for headline/about/experience.
 - **Acceptance:**
@@ -476,6 +526,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #41 Funnel + conversion viz
 - **Labels:** `sandcastle`, `slice-9-insights`, `area:ui`
+- **Blocked by:** #6, #12, #16
 - **Plan:** `plans/slice-9-insights/41-funnel.md`
 - **Goal:** Insights page with funnel + conversion rates from existing event log.
 - **Acceptance:**
@@ -485,6 +536,7 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ### #42 Narrative theme extractor (lightweight)
 - **Labels:** `sandcastle`, `slice-9-insights`, `area:worker`
+- **Blocked by:** #11, #24
 - **Plan:** `plans/slice-9-insights/42-themes.md`
 - **Goal:** scheduled worker that summarizes recurring themes across approved resumes.
 - **Acceptance:**
@@ -493,12 +545,39 @@ Goal: empty skeleton that runs locally + on Vercel, with schema, event log, stat
 
 ---
 
+## Dependency-ready issues (initial Sandcastle queue)
+
+These are the only Sandcastle-eligible issues whose `Blocked by` list is fully closed once Slice 0 manual tasks (#1, #2, #3, #10, #13) and the schema/event prerequisites land. Apply the `sandcastle` label in **waves**, never all at once.
+
+### Wave 1 — ready as soon as #3 (Prisma) merges
+- **#4** core schema
+
+### Wave 2 — ready as soon as #4 (schema) closes
+- **#5** auth + User
+- **#6** event log
+- **#11** AI Gateway *(also requires #1)*
+
+### Wave 3 — ready as soon as #2 (shadcn) closes
+- **#12** base layout
+
+### Wave 4 — ready as soon as #6 (event log) closes
+- **#8** state machine
+- **#9** worker runtime
+- (then **#7** dispatcher once both #6 and #9 are done)
+
+### Wave 5+ — Slice 1 onwards
+Apply only once their `Blocked by` lists are fully closed. The graph in this file is the source of truth.
+
+---
+
 ## Summary
 
 - **Total issues:** 42
-- **Manual (me):** 8 → #1, #2, #3, #10, #13, #20, #33, and one TBD
-- **Sandcastle:** 34
+- **Manual:** 7 → #1, #2, #3, #10, #13, #20, #33
+- **Sandcastle:** 35
 - **Slices:** 0 → 9
-- **Plan files required:** 34 (one per Sandcastle issue)
+- **Plan files required:** 35 (one per Sandcastle issue)
 
-Next move after eyeball: `git init`, push docs, bulk-create issues via `gh issue create`, then start drafting plan files starting with `plans/slice-0-foundation/04-core-schema.md`.
+Every Sandcastle issue carries a `Blocked by:` line. The RALPH agent in `.sandcastle/implement-prompt.md` is instructed to skip blocked issues. We also enforce ordering via **staged labelling** — only apply the `sandcastle` label when all upstream blockers are closed.
+
+Next move: `gh repo create` (done), bulk-create issues via `gh issue create`, apply Wave 1 labels only, then start drafting `plans/slice-0-foundation/04-core-schema.md`.
