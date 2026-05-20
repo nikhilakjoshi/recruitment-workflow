@@ -4,9 +4,16 @@ Fix issue {{TASK_ID}}: {{ISSUE_TITLE}}
 
 Pull in the issue using `{{VIEW_TASK_COMMAND}}`. Read the `Blocked by:` line in the issue body and confirm every listed dependency is closed before starting — if any is still open, leave a comment on the issue and stop.
 
-The issue body references a plan file under `plans/<slice>/<issue-slug>.md`. **Read that plan file first** — it contains the full context, type signatures, file touchpoints, and acceptance criteria. The plan file is the source of truth for what to build.
+The issue body has a `Plan:` line naming a filename, e.g. `Plan: 01-domain-core.md`.
+**Read that plan file first** at `/home/agent/.plans/<filename>` — that path is a
+read-only bind-mount of the human's curated plan directory. The plan file contains
+the full context, pinned design decisions, type signatures, file touchpoints,
+acceptance criteria, and out-of-scope guardrails. **The plan file is the source
+of truth for what to build.** Do not improvise around it; if something is missing,
+leave a comment on the issue and stop.
 
-Also read `PRODUCT.md`, `ARCHITECTURE.md`, and `ROADMAP.md` for global product semantics. Do not duplicate what's there — apply it.
+Also read `PRODUCT.md`, `ARCHITECTURE.md`, and `ROADMAP.md` in the worktree for
+global product semantics. Do not duplicate what's there — apply it.
 
 Only work on the issue specified.
 

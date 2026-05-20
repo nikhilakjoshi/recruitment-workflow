@@ -57,14 +57,28 @@ const hooks = {
 // worktree tiny (~5MB) instead of ~1GB.
 const copyToWorktree: string[] = [];
 
-// Bind-mount the host's pnpm content-addressed store into the container at
-// the path expected by PNPM_STORE_DIR (set in .sandcastle/Dockerfile).
-// On macOS the host store lives at ~/Library/pnpm/store.
+// Bind-mounts for each sandbox:
+//
+// 1. Host's pnpm content-addressed store → container's PNPM_STORE_DIR.
+//    Lets `pnpm install --prefer-offline` reuse already-downloaded packages.
+//    Read/write so newly-fetched packages benefit host pnpm too.
+//
+// 2. Host's ~/.claude/plans/ (the native Claude plan directory) → /home/agent/.plans/.
+//    Plans are the spec each implementer reads before coding. Kept out of the
+//    repo so they stay private + can be edited without a commit/push cycle.
+//    Read-only — agent treats them as authoritative spec, not editable artifact.
+//    The GitHub issue body names the file (`Plan: <filename>`); the agent
+//    reads it from /home/agent/.plans/<filename>.
 const sandboxConfig = docker({
   mounts: [
     {
       hostPath: "~/Library/pnpm/store",
       sandboxPath: "/home/agent/.pnpm-store",
+    },
+    {
+      hostPath: "~/.claude/plans",
+      sandboxPath: "/home/agent/.plans",
+      readonly: true,
     },
   ],
 });

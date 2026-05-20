@@ -26,7 +26,10 @@ Review the code changes on branch `{{BRANCH}}` and improve code clarity, consist
    - Choose clarity over brevity — explicit code is often better than overly compact code
 
 3. **Check correctness**:
-   - Does the implementation match the intent and acceptance criteria in the linked plan file?
+   - Pull the issue's `Plan:` line filename. Read the corresponding plan at
+     `/home/agent/.plans/<filename>` (read-only bind-mount of the human's
+     curated plan dir). Does the implementation match the acceptance criteria
+     and pinned decisions in the plan file?
    - Are new/changed behaviours covered by tests?
    - Are there unsafe casts, `any` types, or unchecked assumptions?
    - Does the change introduce injection vulnerabilities, credential leaks, or other security issues?
