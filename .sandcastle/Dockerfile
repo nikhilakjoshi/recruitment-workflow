@@ -34,13 +34,31 @@ RUN if getent group $AGENT_GID >/dev/null; then \
     fi && \
     groupmod -g $AGENT_GID node && \
     usermod -u $AGENT_UID -g $AGENT_GID -d /home/agent -m -l agent node
+
+# Install pnpm globally via Corepack while still root (needs to write into
+# /usr/local/bin). Ships with Node 22.
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
 USER ${AGENT_UID}:${AGENT_GID}
 
 # Install Claude Code CLI
 RUN curl -fsSL https://claude.ai/install.sh | bash
 
-# Add Claude to PATH
-ENV PATH="/home/agent/.local/bin:$PATH"
+# Add Claude + pnpm-managed binaries to PATH.
+# PNPM_STORE_DIR points at a directory we expect to be bind-mounted from the
+# host's pnpm store (see main.mts mounts config). This gives the container
+# read/write access to the same content-addressed store that the host pnpm
+# uses, so installs reuse already-downloaded packages — no baked node_modules,
+# no per-worktree bloat. Cross-mount hard-link is not possible, so pnpm falls
+# back to copying from the store into node_modules — still seconds, not minutes.
+ENV PNPM_HOME="/home/agent/.local/share/pnpm"
+ENV PNPM_STORE_DIR="/home/agent/.pnpm-store"
+ENV PATH="/home/agent/.local/bin:$PNPM_HOME:$PATH"
+
+# Pre-create the store-dir so the bind-mount lands on an existing path with
+# correct ownership. If no mount is supplied, pnpm will simply use this empty
+# directory as a local store (slower first install, still works).
+RUN mkdir -p "$PNPM_STORE_DIR"
 
 WORKDIR /home/agent
 

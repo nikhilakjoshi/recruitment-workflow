@@ -31,15 +31,35 @@ import { docker } from "@ai-hero/sandcastle/sandboxes/docker";
 const MAX_ITERATIONS = 10;
 
 // Hooks run inside the sandbox before the agent starts each iteration.
-// npm install ensures the sandbox always has fresh dependencies.
+// pnpm install --prefer-offline reads from the bind-mounted host pnpm store
+// (see `mounts` config below). Packages already on the host are copied into
+// the worktree's node_modules in seconds; any new packages get fetched once
+// into the shared store and become available to both host and container.
 const hooks = {
-  sandbox: { onSandboxReady: [{ command: "npm install" }] },
+  sandbox: { onSandboxReady: [{ command: "pnpm install --prefer-offline" }] },
 };
 
-// Copy node_modules from the host into the worktree before each sandbox
-// starts. Avoids a full npm install from scratch; the hook above handles
-// platform-specific binaries and any packages added since the last copy.
-const copyToWorktree = ["node_modules"];
+// node_modules is NOT copied from host. The shared pnpm store (bind-mounted
+// via the `mounts` option below) provides packages on demand. Keeps worktrees
+// tiny (~5MB) instead of ~1GB.
+const copyToWorktree: string[] = [];
+
+// Bind-mount the host's pnpm content-addressed store into the container at
+// the path expected by PNPM_STORE_DIR (see Dockerfile). pnpm inside the
+// container reads/writes here, sharing all package downloads with the host's
+// pnpm and any other Sandcastle iterations.
+//
+// On macOS the host store lives at ~/Library/pnpm/store. If pnpm has never
+// run on this machine you can pre-create the dir; otherwise pnpm finds it
+// automatically.
+const sandboxConfig = docker({
+  mounts: [
+    {
+      hostPath: "~/Library/pnpm/store",
+      sandboxPath: "/home/agent/.pnpm-store",
+    },
+  ],
+});
 
 // ---------------------------------------------------------------------------
 // Main loop
@@ -55,7 +75,7 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
   // This gives both agents a real, named branch that persists across phases.
   const sandbox = await sandcastle.createSandbox({
     branch,
-    sandbox: docker(),
+    sandbox: sandboxConfig,
     hooks,
     copyToWorktree,
   });
@@ -73,7 +93,7 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
     const implement = await sandbox.run({
       name: "implementer",
       maxIterations: 100,
-      agent: sandcastle.claudeCode("claude-opus-4-6"),
+      agent: sandcastle.claudeCode("claude-opus-4-7"),
       promptFile: "./.sandcastle/implement-prompt.md",
     });
 
@@ -95,7 +115,7 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
     await sandbox.run({
       name: "reviewer",
       maxIterations: 1,
-      agent: sandcastle.claudeCode("claude-opus-4-6"),
+      agent: sandcastle.claudeCode("claude-opus-4-7"),
       promptFile: "./.sandcastle/review-prompt.md",
       promptArgs: {
         BRANCH: branch,
