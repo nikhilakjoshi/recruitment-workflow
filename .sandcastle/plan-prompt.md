@@ -4,7 +4,7 @@ Here are the open issues in the repo:
 
 <issues-json>
 
-!`{{LIST_TASKS_COMMAND}}`
+!`gh issue list --state open --label sandcastle --json number,title,body,labels --jq '[.[] | {number, title, body, labels: [.labels[].name]}]'`
 
 </issues-json>
 

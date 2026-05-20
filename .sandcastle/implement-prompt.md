@@ -2,7 +2,7 @@
 
 Fix issue {{TASK_ID}}: {{ISSUE_TITLE}}
 
-Pull in the issue using `{{VIEW_TASK_COMMAND}}`. Read the `Blocked by:` line in the issue body and confirm every listed dependency is closed before starting — if any is still open, leave a comment on the issue and stop.
+Pull in the issue using `gh issue view {{TASK_ID}} --json number,title,body,labels`. Read the `Blocked by:` line in the issue body and confirm every listed dependency is closed before starting — if any is still open, leave a comment on the issue with `gh issue comment {{TASK_ID}} --body "..."` and stop.
 
 The issue body has a `Plan:` line naming a filename, e.g. `Plan: 01-domain-core.md`.
 **Read that plan file first** at `/home/agent/.plans/<filename>` — that path is a
