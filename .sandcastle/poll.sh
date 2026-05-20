@@ -7,8 +7,8 @@
 # issues in one run (implement + review per iteration). Sleeps between checks.
 #
 # Usage:
-#   bash .sandcastle/poll.sh            # default 300s (5 min) interval
-#   bash .sandcastle/poll.sh 60         # poll every 60s
+#   bash .sandcastle/poll.sh            # default 30s interval
+#   bash .sandcastle/poll.sh 300        # poll every 5 min
 #   bash .sandcastle/poll.sh 1800       # poll every 30 min
 #
 # Logs:
@@ -20,7 +20,7 @@
 
 set -euo pipefail
 
-INTERVAL="${1:-300}"
+INTERVAL="${1:-30}"
 LOG_DIR=".sandcastle/logs"
 POLL_LOG="$LOG_DIR/poll.log"
 

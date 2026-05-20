@@ -1,51 +1,70 @@
-# Context
+# TASK
 
-## Open issues
+Fix issue {{TASK_ID}}: {{ISSUE_TITLE}}
 
-!`gh issue list --state open --label sandcastle --json number,title,body,labels,comments --jq '[.[] | {number, title, body, labels: [.labels[].name], comments: [.comments[].body]}]'`
+Pull in the issue using `{{VIEW_TASK_COMMAND}}`. Read the `Blocked by:` line in the issue body and confirm every listed dependency is closed before starting — if any is still open, leave a comment on the issue and stop.
 
-## Recent RALPH commits (last 10)
+The issue body references a plan file under `plans/<slice>/<issue-slug>.md`. **Read that plan file first** — it contains the full context, type signatures, file touchpoints, and acceptance criteria. The plan file is the source of truth for what to build.
 
-!`git log --oneline --grep="RALPH" -10`
+Also read `PRODUCT.md`, `ARCHITECTURE.md`, and `ROADMAP.md` for global product semantics. Do not duplicate what's there — apply it.
 
-# Task
+Only work on the issue specified.
 
-You are RALPH — an autonomous coding agent working through issues one at a time.
+Work on branch {{BRANCH}}. Make commits and run tests.
 
-## Priority order
+# CONTEXT
 
-Work on issues in this order:
+Here are the last 10 commits:
 
-1. **Bug fixes** — broken behaviour affecting users
-2. **Tracer bullets** — thin end-to-end slices that prove an approach works
-3. **Polish** — improving existing functionality (error messages, UX, docs)
-4. **Refactors** — internal cleanups with no user-visible change
+<recent-commits>
 
-Pick the highest-priority open issue that is not blocked by another open issue.
+!`git log -n 10 --format="%H%n%ad%n%B---" --date=short`
 
-## Workflow
+</recent-commits>
 
-1. **Explore** — read the issue carefully. Pull in the parent PRD if referenced. Read the relevant source files and tests before writing any code.
-2. **Plan** — decide what to change and why. Keep the change as small as possible.
-3. **Execute** — use RGR (Red → Green → Repeat → Refactor): write a failing test first, then write the implementation to pass it.
-4. **Verify** — run `npm run typecheck` and `npm run test` before committing. Fix any failures before proceeding.
-5. **Commit** — make a single git commit. The message MUST:
-   - Start with `RALPH:` prefix
-   - Include the task completed and any PRD reference
-   - List key decisions made
-   - List files changed
-   - Note any blockers for the next iteration
-6. **Close** — close the issue with `gh issue close <ID> --comment "Completed by Sandcastle"` explaining what was done.
+# EXPLORATION
 
-## Rules
+Explore the repo and fill your context window with relevant information that will allow you to complete the task.
 
-- Work on **one issue per iteration**. Do not attempt multiple issues in a single iteration.
-- Do not close an issue until you have committed the fix and verified tests pass.
-- Do not leave commented-out code or TODO comments in committed code.
-- If you are blocked (missing context, failing tests you cannot fix, external dependency), leave a comment on the issue and move on — do not close it.
+Pay extra attention to test files that touch the relevant parts of the code.
 
-# Done
+# EXECUTION
 
-When all actionable issues are complete (or you are blocked on all remaining ones), output the completion signal:
+If applicable, use RGR to complete the task.
 
-<promise>COMPLETE</promise>
+1. RED: write one test
+2. GREEN: write the implementation to pass that test
+3. REPEAT until done
+4. REFACTOR the code
+
+# FEEDBACK LOOPS
+
+Before committing, run `pnpm typecheck` (or `pnpm exec tsc --noEmit`) and `pnpm test` (if tests exist) to ensure everything passes.
+
+This project uses **pnpm**, not npm. Use `pnpm add <pkg>` for new dependencies (which writes to `pnpm-lock.yaml`).
+
+# COMMIT
+
+Make a git commit. The commit message must:
+
+1. Start with `RALPH:` prefix
+2. Include task completed + plan file reference (`plans/<slice>/<slug>.md`)
+3. Key decisions made
+4. Files changed
+5. Blockers or notes for next iteration
+
+Keep it concise. Per CLAUDE.md: sacrifice grammar for concision, no emojis.
+
+# THE ISSUE
+
+If the task is not complete, leave a comment on the issue with what was done.
+
+Do not close the issue - the merger phase will close it after a clean merge to main.
+
+Once complete, output <promise>COMPLETE</promise>.
+
+# FINAL RULES
+
+ONLY WORK ON A SINGLE TASK.
+
+Every outbound artifact (resume, cover letter, LinkedIn edit, recruiter response, application submission) must go through the approval gate — there is no auto-send. This is foundational to the product (see PRODUCT.md §15).
