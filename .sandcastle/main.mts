@@ -70,6 +70,10 @@ const copyToWorktree: string[] = [];
 //    The GitHub issue body names the file (`Plan: <filename>`); the agent
 //    reads it from /home/agent/.plans/<filename>.
 const sandboxConfig = docker({
+  // Match the image we built locally (`sandcastle docker build-image
+  // --image-name career-os-sandcastle`). Without this, Sandcastle defaults
+  // to `sandcastle:<repo-name>` which doesn't exist.
+  imageName: "career-os-sandcastle",
   mounts: [
     {
       hostPath: "~/Library/pnpm/store",
