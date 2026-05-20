@@ -17,17 +17,16 @@ afterAll(async () => {
 });
 
 describe("prisma seed", () => {
-  it("creates exactly one User + Candidate, idempotently", () => {
+  it("creates exactly one User + Candidate, idempotently", async () => {
     execSync("pnpm exec prisma db seed", { stdio: "ignore" });
     execSync("pnpm exec prisma db seed", { stdio: "ignore" });
 
-    return Promise.all([
+    const [users, candidates] = await Promise.all([
       prisma.user.count(),
       prisma.candidate.count(),
-    ]).then(([users, candidates]) => {
-      expect(users).toBe(1);
-      expect(candidates).toBe(1);
-    });
+    ]);
+    expect(users).toBe(1);
+    expect(candidates).toBe(1);
   });
 
   it("rejects a second Candidate row at the DB level (single-tenant)", async () => {

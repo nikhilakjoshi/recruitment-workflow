@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getIronSession } from "iron-session";
 import type { SessionData } from "@/lib/auth/session";
+import { SESSION_COOKIE_NAME, readAuthSecret } from "@/lib/auth/session-config";
 import { isSameOrigin } from "@/lib/auth/middleware-helpers";
 
 const PUBLIC_PATHS = new Set<string>(["/signin"]);
@@ -21,15 +22,17 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const password = process.env.AUTH_SECRET;
-  if (!password || password.length < 32) {
+  let password: string;
+  try {
+    password = readAuthSecret();
+  } catch {
     return new NextResponse("AUTH_SECRET not configured", { status: 500 });
   }
 
   const res = NextResponse.next();
   const session = await getIronSession<SessionData>(req, res, {
     password,
-    cookieName: "career_os_session",
+    cookieName: SESSION_COOKIE_NAME,
   });
 
   if (!session.userId) {

@@ -2,6 +2,7 @@ import "server-only";
 
 import { cookies } from "next/headers";
 import { getIronSession, type IronSession, type SessionOptions } from "iron-session";
+import { SESSION_COOKIE_NAME, readAuthSecret } from "./session-config";
 
 export type SessionData = {
   userId?: string;
@@ -10,13 +11,9 @@ export type SessionData = {
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30;
 
 function getSessionOptions(): SessionOptions {
-  const password = process.env.AUTH_SECRET;
-  if (!password || password.length < 32) {
-    throw new Error("AUTH_SECRET must be set to a string of at least 32 characters");
-  }
   return {
-    password,
-    cookieName: "career_os_session",
+    password: readAuthSecret(),
+    cookieName: SESSION_COOKIE_NAME,
     ttl: SESSION_TTL_SECONDS,
     cookieOptions: {
       httpOnly: true,

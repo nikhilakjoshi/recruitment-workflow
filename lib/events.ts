@@ -9,9 +9,9 @@ export type EmitEventInput = {
   emittedBy: string;
 };
 
-// Stub implementation for Chunk 1. Chunk 2 will replace this with the real
-// dispatcher that fans out to subscribed workers. For now the row is the
-// only side effect.
+// Placeholder dispatcher: persists the event row. Fan-out to subscribed
+// workers will be added later — callers must not depend on synchronous
+// delivery beyond the row write.
 export async function emitEvent(input: EmitEventInput) {
   if (process.env.NODE_ENV !== "production") {
     console.log(`[event-stub] ${input.type}`);

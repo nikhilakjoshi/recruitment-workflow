@@ -45,13 +45,28 @@ type TransitionContext = {
   reason?: string;
 };
 
-const TIMESTAMP_COLUMN: Partial<Record<ApplicationState, keyof Application>> = {
-  [ApplicationState.SHORTLISTED]: "shortlistedAt",
-  [ApplicationState.SUBMITTED]: "submittedAt",
-  [ApplicationState.REJECTED]: "rejectedAt",
-  [ApplicationState.ACCEPTED]: "acceptedAt",
-  [ApplicationState.ARCHIVED]: "archivedAt",
-};
+function buildUpdateData(nextState: ApplicationState): Prisma.ApplicationUpdateInput {
+  const data: Prisma.ApplicationUpdateInput = { state: nextState };
+  const now = new Date();
+  switch (nextState) {
+    case ApplicationState.SHORTLISTED:
+      data.shortlistedAt = now;
+      break;
+    case ApplicationState.SUBMITTED:
+      data.submittedAt = now;
+      break;
+    case ApplicationState.REJECTED:
+      data.rejectedAt = now;
+      break;
+    case ApplicationState.ACCEPTED:
+      data.acceptedAt = now;
+      break;
+    case ApplicationState.ARCHIVED:
+      data.archivedAt = now;
+      break;
+  }
+  return data;
+}
 
 export async function transition(
   applicationId: string,
@@ -64,13 +79,10 @@ export async function transition(
     throw new InvalidTransitionError(current.state, nextState);
   }
 
-  const data: Prisma.ApplicationUpdateInput = { state: nextState };
-  const timestampField = TIMESTAMP_COLUMN[nextState];
-  if (timestampField) {
-    (data as Record<string, unknown>)[timestampField] = new Date();
-  }
-
-  const updated = await prisma.application.update({ where: { id: applicationId }, data });
+  const updated = await prisma.application.update({
+    where: { id: applicationId },
+    data: buildUpdateData(nextState),
+  });
 
   await emitEvent({
     type: "APPLICATION_STATE_CHANGED",
