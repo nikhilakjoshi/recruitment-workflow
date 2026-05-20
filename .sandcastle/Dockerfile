@@ -35,9 +35,10 @@ RUN if getent group $AGENT_GID >/dev/null; then \
     groupmod -g $AGENT_GID node && \
     usermod -u $AGENT_UID -g $AGENT_GID -d /home/agent -m -l agent node
 
-# Install pnpm globally via Corepack while still root (needs to write into
-# /usr/local/bin). Ships with Node 22.
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install pnpm globally as root (matches host pnpm 10.30.0 — store layout
+# stays compatible between host and container). Corepack is bypassed because
+# its interactive download prompt blocks non-TTY containers.
+RUN npm install -g pnpm@10.30.0
 
 USER ${AGENT_UID}:${AGENT_GID}
 
