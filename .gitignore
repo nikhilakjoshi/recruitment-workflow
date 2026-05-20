@@ -65,3 +65,4 @@ gcs-*.json
 *.pem
 
 /node_modules/.prisma/client
+.pnpm-store/
