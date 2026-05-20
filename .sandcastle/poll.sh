@@ -20,6 +20,12 @@
 
 set -euo pipefail
 
+# Always operate from the project root so relative paths resolve consistently,
+# regardless of where the user invoked this script from.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+cd "$PROJECT_ROOT"
+
 INTERVAL="${1:-30}"
 LOG_DIR=".sandcastle/logs"
 POLL_LOG="$LOG_DIR/poll.log"
