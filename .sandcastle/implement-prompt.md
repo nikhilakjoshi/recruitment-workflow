@@ -4,20 +4,17 @@ Fix issue {{TASK_ID}}: {{ISSUE_TITLE}}
 
 Pull in the issue using `gh issue view {{TASK_ID}} --json number,title,body,labels`. Read the `Blocked by:` line in the issue body and confirm every listed dependency is closed before starting — if any is still open, leave a comment on the issue with `gh issue comment {{TASK_ID}} --body "..."` and stop.
 
-The issue body has a `Plan:` line naming a filename, e.g. `Plan: 01-domain-core.md`.
-**Read that plan file first** at `/home/agent/.plans/<filename>` — that path is a
-read-only bind-mount of the human's curated plan directory. The plan file contains
-the full context, pinned design decisions, type signatures, file touchpoints,
-acceptance criteria, and out-of-scope guardrails. **The plan file is the source
-of truth for what to build.** Do not improvise around it; if something is missing,
-leave a comment on the issue and stop.
+The issue body has a `Plan: <filename>` line. **Read that plan file first** at `/home/agent/.plans/<filename>` — that path is a read-only bind-mount of the human's curated plan directory. The plan file contains pinned design decisions, type signatures, file touchpoints, acceptance criteria, and out-of-scope guardrails. **The plan file is the source of truth.** Do not improvise around it; if something is missing, leave a comment on the issue and stop.
 
-Also read `PRODUCT.md`, `ARCHITECTURE.md`, and `ROADMAP.md` in the worktree for
-global product semantics. Do not duplicate what's there — apply it.
+Also read `PRODUCT.md`, `ARCHITECTURE.md`, and `ROADMAP.md` in the worktree for global product semantics. Do not duplicate them — apply them.
 
 Only work on the issue specified.
 
 Work on branch {{BRANCH}}. Make commits and run tests.
+
+**This project uses pnpm, not npm.** Use `pnpm add <pkg>` for new dependencies (writes to `pnpm-lock.yaml`).
+
+**Every outbound artifact** (resume, cover letter, LinkedIn edit, recruiter response, application submission) **must go through the approval gate** — there is no auto-send. This is foundational to the product (see PRODUCT.md §15).
 
 # CONTEXT
 
@@ -46,32 +43,28 @@ If applicable, use RGR to complete the task.
 
 # FEEDBACK LOOPS
 
-Before committing, run `pnpm typecheck` (or `pnpm exec tsc --noEmit`) and `pnpm test` (if tests exist) to ensure everything passes.
-
-This project uses **pnpm**, not npm. Use `pnpm add <pkg>` for new dependencies (which writes to `pnpm-lock.yaml`).
+Before committing, run `pnpm exec tsc --noEmit` and `pnpm test` to ensure the tests pass.
 
 # COMMIT
 
 Make a git commit. The commit message must:
 
 1. Start with `RALPH:` prefix
-2. Include task completed + plan file reference (`plans/<slice>/<slug>.md`)
+2. Include task completed + PRD reference
 3. Key decisions made
 4. Files changed
 5. Blockers or notes for next iteration
 
-Keep it concise. Per CLAUDE.md: sacrifice grammar for concision, no emojis.
+Keep it concise.
 
 # THE ISSUE
 
 If the task is not complete, leave a comment on the issue with what was done.
 
-Do not close the issue - the merger phase will close it after a clean merge to main.
+Do not close the issue - this will be done later.
 
 Once complete, output <promise>COMPLETE</promise>.
 
 # FINAL RULES
 
 ONLY WORK ON A SINGLE TASK.
-
-Every outbound artifact (resume, cover letter, LinkedIn edit, recruiter response, application submission) must go through the approval gate — there is no auto-send. This is foundational to the product (see PRODUCT.md §15).

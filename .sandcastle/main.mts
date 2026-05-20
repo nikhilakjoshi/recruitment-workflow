@@ -1,33 +1,25 @@
 // Parallel Planner with Review — four-phase orchestration loop
 //
-// Customised for Career OS:
-//   - All agents run claude-opus-4-7
-//   - Host's pnpm content-addressed store is bind-mounted into each
-//     sandbox so `pnpm install --prefer-offline` reuses already-downloaded
-//     packages and never bloats the worktree
-//   - Authoritative dependency graph lives in each issue's `Blocked by:`
-//     line; the planner reads these and only emits unblocked issues
+// This template drives a multi-phase workflow:
+//   Phase 1 (Plan):             An opus agent analyzes open issues, builds a
+//                               dependency graph, and outputs a <plan> JSON
+//                               listing unblocked issues with branch names.
+//   Phase 2 (Execute + Review): For each issue, a sandbox is created via
+//                               createSandbox(). The implementer runs first
+//                               (100 iterations). If it produces commits, a
+//                               reviewer runs in the same sandbox on the same
+//                               branch (1 iteration). All issue pipelines run
+//                               concurrently via Promise.allSettled().
+//   Phase 3 (Merge):            A single agent merges all completed branches
+//                               into the current branch.
 //
-// Phases per outer iteration:
-//   Phase 1 (Plan):    opus reads open issues, parses `Blocked by:` lines,
-//                      and outputs a <plan> JSON of unblocked issues.
-//                      If only one is unblocked, the parallel infrastructure
-//                      collapses to sequential execution.
-//   Phase 2 (Exec):    each unblocked issue runs in its own sandbox in
-//                      parallel via Promise.allSettled. Implementer first,
-//                      then reviewer in the same sandbox / branch.
-//   Phase 3 (Merge):   a single merger agent on `main` merges all completed
-//                      branches, resolves conflicts, runs typecheck + tests,
-//                      and closes the corresponding issues.
-//
-// Outer loop repeats up to MAX_ITERATIONS so newly-unblocked issues are
-// picked up after each round of merges (closed issues become "done"
-// dependencies for downstream issues).
+// The outer loop repeats up to MAX_ITERATIONS times so that newly unblocked
+// issues are picked up after each round of merges.
 //
 // Usage:
-//   pnpm tsx .sandcastle/main.mts
-// Or via the polling wrapper:
-//   bash .sandcastle/poll.sh        # 30s polling interval
+//   npx tsx .sandcastle/main.mts
+// Or add to package.json:
+//   "scripts": { "sandcastle": "npx tsx .sandcastle/main.mts" }
 
 import * as sandcastle from "@ai-hero/sandcastle";
 import { docker } from "@ai-hero/sandcastle/sandboxes/docker";
@@ -40,39 +32,27 @@ import { docker } from "@ai-hero/sandcastle/sandboxes/docker";
 // Raise this if your backlog is large; lower it for a quick smoke-test run.
 const MAX_ITERATIONS = 10;
 
-// Default Claude model for all agents in this template.
-const MODEL = "claude-opus-4-7";
-
 // Hooks run inside the sandbox before the agent starts each iteration.
 // pnpm install --prefer-offline reads from the bind-mounted host pnpm store
-// (see `mounts` config below). Packages already on the host are copied into
-// the worktree's node_modules in seconds; new packages get fetched once into
-// the shared store and become available to host + every future container.
+// (see sandboxConfig.mounts below). No copying node_modules from host; the
+// store provides packages on demand and copies (not hard-links — cross-mount)
+// them into the worktree's node_modules in seconds.
 const hooks = {
   sandbox: { onSandboxReady: [{ command: "pnpm install --prefer-offline" }] },
 };
 
-// node_modules is NOT copied from host. The shared pnpm store (bind-mounted
-// via the `mounts` option below) provides packages on demand. Keeps each
-// worktree tiny (~5MB) instead of ~1GB.
+// node_modules is NOT copied from host. The shared pnpm store provides
+// packages on demand. Keeps each worktree tiny (~5 MB) instead of ~1 GB.
 const copyToWorktree: string[] = [];
 
-// Bind-mounts for each sandbox:
-//
-// 1. Host's pnpm content-addressed store → container's PNPM_STORE_DIR.
-//    Lets `pnpm install --prefer-offline` reuse already-downloaded packages.
-//    Read/write so newly-fetched packages benefit host pnpm too.
-//
-// 2. Host's ~/.claude/plans/ (the native Claude plan directory) → /home/agent/.plans/.
-//    Plans are the spec each implementer reads before coding. Kept out of the
-//    repo so they stay private + can be edited without a commit/push cycle.
-//    Read-only — agent treats them as authoritative spec, not editable artifact.
-//    The GitHub issue body names the file (`Plan: <filename>`); the agent
-//    reads it from /home/agent/.plans/<filename>.
+// Sandbox configuration shared by all phases (planner, implementer, reviewer, merger).
+// - imageName matches the locally built `career-os-sandcastle` image.
+// - mount #1: host pnpm content-addressed store → container PNPM_STORE_DIR.
+// - mount #2: host's ~/.claude/plans/ (native Claude plan directory) →
+//   /home/agent/.plans/. Plans are the spec each implementer reads. Kept out
+//   of the repo so they stay private + can be edited without a commit/push.
+//   Read-only — agent treats plans as authoritative spec, not editable.
 const sandboxConfig = docker({
-  // Match the image we built locally (`sandcastle docker build-image
-  // --image-name career-os-sandcastle`). Without this, Sandcastle defaults
-  // to `sandcastle:<repo-name>` which doesn't exist.
   imageName: "career-os-sandcastle",
   mounts: [
     {
@@ -97,19 +77,25 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
   // -------------------------------------------------------------------------
   // Phase 1: Plan
   //
-  // The planner reads every open issue's `Blocked by:` line and outputs the
-  // set of issues whose blockers are all closed. That set can safely run in
-  // parallel — by construction none of them depends on another open issue.
+  // The planning agent (opus, for deeper reasoning) reads the open issue list,
+  // builds a dependency graph, and selects the issues that can be worked in
+  // parallel right now (i.e., no blocking dependencies on other open issues).
+  //
+  // It outputs a <plan> JSON block — we parse that to drive Phase 2.
   // -------------------------------------------------------------------------
   const plan = await sandcastle.run({
     hooks,
     sandbox: sandboxConfig,
     name: "planner",
+    // One iteration is enough: the planner just needs to read and reason,
+    // not write code.
     maxIterations: 1,
-    agent: sandcastle.claudeCode(MODEL),
+    // Opus for planning: dependency analysis benefits from deeper reasoning.
+    agent: sandcastle.claudeCode("claude-opus-4-7"),
     promptFile: "./.sandcastle/plan-prompt.md",
   });
 
+  // Extract the <plan>…</plan> block from the agent's stdout.
   const planMatch = plan.stdout.match(/<plan>([\s\S]*?)<\/plan>/);
   if (!planMatch) {
     throw new Error(
@@ -117,17 +103,19 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
     );
   }
 
+  // The plan JSON contains an array of issues, each with id, title, branch.
   const { issues } = JSON.parse(planMatch[1]!) as {
     issues: { id: string; title: string; branch: string }[];
   };
 
   if (issues.length === 0) {
+    // No unblocked work — either everything is done or everything is blocked.
     console.log("No unblocked issues to work on. Exiting.");
     break;
   }
 
   console.log(
-    `Planning complete. ${issues.length} issue(s) ready to work in parallel:`,
+    `Planning complete. ${issues.length} issue(s) to work in parallel:`,
   );
   for (const issue of issues) {
     console.log(`  ${issue.id}: ${issue.title} → ${issue.branch}`);
@@ -136,10 +124,13 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
   // -------------------------------------------------------------------------
   // Phase 2: Execute + Review
   //
-  // Each unblocked issue gets its own sandbox. Implementer and reviewer
-  // share that sandbox so both phases operate on the same branch.
-  // Promise.allSettled: one failing pipeline does not cancel the others.
+  // For each issue, create a sandbox via createSandbox() so the implementer
+  // and reviewer share the same sandbox instance per branch. The implementer
+  // runs first; if it produces commits, the reviewer runs in the same sandbox.
+  //
+  // Promise.allSettled means one failing pipeline doesn't cancel the others.
   // -------------------------------------------------------------------------
+
   const settled = await Promise.allSettled(
     issues.map(async (issue) => {
       const sandbox = await sandcastle.createSandbox({
@@ -150,10 +141,11 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
       });
 
       try {
+        // Run the implementer
         const implement = await sandbox.run({
           name: "implementer",
           maxIterations: 100,
-          agent: sandcastle.claudeCode(MODEL),
+          agent: sandcastle.claudeCode("claude-opus-4-7"),
           promptFile: "./.sandcastle/implement-prompt.md",
           promptArgs: {
             TASK_ID: issue.id,
@@ -162,18 +154,20 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
           },
         });
 
+        // Only review if the implementer produced commits
         if (implement.commits.length > 0) {
           const review = await sandbox.run({
             name: "reviewer",
             maxIterations: 1,
-            agent: sandcastle.claudeCode(MODEL),
+            agent: sandcastle.claudeCode("claude-opus-4-7"),
             promptFile: "./.sandcastle/review-prompt.md",
             promptArgs: {
               BRANCH: issue.branch,
             },
           });
 
-          // Merge commits from both phases so the merge step sees all of them.
+          // Merge commits from both runs so the merge phase sees all of them.
+          // Each sandbox.run() only returns commits from its own run.
           return {
             ...review,
             commits: [...implement.commits, ...review.commits],
@@ -187,15 +181,17 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
     }),
   );
 
+  // Log any agents that threw (network error, sandbox crash, etc.).
   for (const [i, outcome] of settled.entries()) {
     if (outcome.status === "rejected") {
       console.error(
-        `  failed: ${issues[i]!.id} (${issues[i]!.branch}) — ${outcome.reason}`,
+        `  ✗ ${issues[i]!.id} (${issues[i]!.branch}) failed: ${outcome.reason}`,
       );
     }
   }
 
-  // Only branches that actually produced commits should reach the merge phase.
+  // Only pass branches that actually produced commits to the merge phase.
+  // An agent that ran successfully but made no commits has nothing to merge.
   const completedIssues = settled
     .map((outcome, i) => ({ outcome, issue: issues[i]! }))
     .filter(
@@ -215,6 +211,7 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
   }
 
   if (completedBranches.length === 0) {
+    // All agents ran but none made commits — nothing to merge this cycle.
     console.log("No commits produced. Nothing to merge.");
     continue;
   }
@@ -222,21 +219,26 @@ for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
   // -------------------------------------------------------------------------
   // Phase 3: Merge
   //
-  // One agent in a fresh sandbox (on `main`) merges every completed branch
-  // into main, resolves conflicts, runs typecheck + tests, and closes the
-  // corresponding issues. Failed merges leave branches untouched for
-  // human inspection.
+  // One agent merges all completed branches into the current branch,
+  // resolving any conflicts and running tests to confirm everything works.
+  //
+  // The {{BRANCHES}} and {{ISSUES}} prompt arguments are lists that the agent
+  // uses to know which branches to merge and which issues to close.
   // -------------------------------------------------------------------------
   await sandcastle.run({
     hooks,
     sandbox: sandboxConfig,
     name: "merger",
     maxIterations: 1,
-    agent: sandcastle.claudeCode(MODEL),
+    agent: sandcastle.claudeCode("claude-opus-4-7"),
     promptFile: "./.sandcastle/merge-prompt.md",
     promptArgs: {
+      // A markdown list of branch names, one per line.
       BRANCHES: completedBranches.map((b) => `- ${b}`).join("\n"),
-      ISSUES: completedIssues.map((i) => `- ${i.id}: ${i.title}`).join("\n"),
+      // A markdown list of issue IDs and titles, one per line.
+      ISSUES: completedIssues
+        .map((i) => `- ${i.id}: ${i.title}`)
+        .join("\n"),
     },
   });
 

@@ -1,36 +1,26 @@
 # TASK
 
-Merge the following branches into the current branch (`main`):
+Merge the following branches into the current branch:
 
 {{BRANCHES}}
 
 For each branch:
 
 1. Run `git merge <branch> --no-edit`
-2. If there are merge conflicts, resolve them intelligently by reading both sides and choosing the correct resolution. When in doubt, favour the side that matches the plan file referenced in the issue body.
-3. After resolving conflicts, run `pnpm typecheck` and `pnpm test` to verify everything works.
-4. If type-checks or tests fail, fix the issues before proceeding to the next branch.
+2. If there are merge conflicts, resolve them intelligently by reading both sides and choosing the correct resolution
+3. After resolving conflicts, run `pnpm exec tsc --noEmit` and `pnpm test` to verify everything works
+4. If tests fail, fix the issues before proceeding to the next branch
 
 After all branches are merged, make a single commit summarizing the merge.
 
 # CLOSE ISSUES
 
-For each branch that was merged successfully, close its issue:
+For each branch that was merged, close its issue using the following command:
 
-```
-gh issue close <issue-number> --comment "Merged via Sandcastle. Branch: <branch-name>. See plan file for context."
-```
+`gh issue close <ID> --comment "Completed by Sandcastle"`
 
-Issue numbers are listed below in `{{ISSUES}}`.
-
-Here are all the issues being merged this round:
+Here are all the issues:
 
 {{ISSUES}}
 
 Once you've merged everything you can, output <promise>COMPLETE</promise>.
-
-# NOTES
-
-- This project uses **pnpm**, not npm.
-- If a merge fails or tests can't be fixed within the iteration budget, leave the branch unmerged and report the failure in the final output. Do not force a bad merge.
-- The merger never bypasses the human approval gate for outbound artifacts; that's enforced at the database/UI layer.
