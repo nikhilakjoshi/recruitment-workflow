@@ -1,12 +1,295 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
+  provider   = "postgresql"
+  extensions = [vector]
+}
+
+enum RemotePolicy {
+  REMOTE
+  HYBRID
+  ONSITE
+  ANY
+}
+
+enum OpportunitySource {
+  LINKEDIN
+  INDEED
+  WELLFOUND
+  DIRECT
+  MANUAL
+  OTHER
+}
+
+enum ApplicationState {
+  DISCOVERED
+  SHORTLISTED
+  EVALUATED
+  TAILORING
+  APPROVED
+  SUBMITTED
+  RECRUITER_ENGAGED
+  INTERVIEWING
+  NEGOTIATING
+  REJECTED
+  ACCEPTED
+  ARCHIVED
+}
+
+enum ArtifactType {
+  EVALUATION
+  TAILORED_RESUME
+  COVER_LETTER
+  COMPANY_RESEARCH
+  INTERVIEW_PREP
+  STAR_LIBRARY
+  RECRUITER_REPLY
+  THANK_YOU_EMAIL
+  LINKEDIN_REWRITE
+  NEGOTIATION_DRAFT
+}
+
+enum ArtifactState {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  REGENERATED
+  ARCHIVED
+}
+
+enum InterviewType {
+  PHONE_SCREEN
+  TECHNICAL_SCREEN
+  BEHAVIORAL
+  PANEL
+  ONSITE_LOOP
+  FINAL
+  OTHER
+}
+
+enum EventType {
+  CANDIDATE_CREATED
+  CANDIDATE_PROFILE_UPDATED
+  SKILL_ADDED
+  TARGET_ROLE_UPDATED
+
+  JOB_DISCOVERED
+  JOB_RANKED
+  JOB_SHORTLISTED
+  JOB_DISMISSED
+
+  APPLICATION_CREATED
+  APPLICATION_STATE_CHANGED
+  APPLICATION_SUBMITTED
+  FOLLOW_UP_SCHEDULED
+  REJECTION_RECEIVED
+  OFFER_RECEIVED
+
+  EVALUATION_GENERATED
+  RESUME_GENERATED
+  RESUME_APPROVAL_REQUESTED
+  RESUME_APPROVED
+  RESUME_REJECTED
+  COVER_LETTER_GENERATED
+  COVER_LETTER_APPROVED
+  ARTIFACT_EDITED
+  ARTIFACT_ARCHIVED
+
+  RECRUITER_REPLY_DETECTED
+  INTERVIEW_SCHEDULED
+  INTERVIEW_PREP_GENERATED
+  COMPANY_RESEARCH_GENERATED
+  INTERVIEW_COMPLETED
+
+  APPROVAL_REQUESTED
+  APPROVAL_GRANTED
+  APPROVAL_REJECTED
+  OUTBOUND_ACTION_BLOCKED
+
+  CONVERSION_PATTERN_DETECTED
+  SKILL_GAP_TREND_DETECTED
+  NARRATIVE_THEME_DETECTED
+}
+
+enum InsightType {
+  CONVERSION_PATTERN
+  SKILL_GAP
+  NARRATIVE_THEME
+  COMP_TREND
+  RECRUITER_RESPONSE_PATTERN
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String
+  candidate    Candidate?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Candidate {
+  id             String          @id @default(cuid())
+  userId         String          @unique
+  user           User            @relation(fields: [userId], references: [id])
+  masterCV       MasterCV?
+  rolePreference RolePreference?
+  applications   Application[]
+  recruiters     Recruiter[]
+  events         Event[]
+  insights       Insight[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model MasterCV {
+  id             String    @id @default(cuid())
+  candidateId    String    @unique
+  candidate      Candidate @relation(fields: [candidateId], references: [id])
+  rawText        String    @db.Text
+  structuredJson Json
+  gcsUri         String?
+  updatedAt      DateTime  @updatedAt
+}
+
+model RolePreference {
+  id                String       @id @default(cuid())
+  candidateId       String       @unique
+  candidate         Candidate    @relation(fields: [candidateId], references: [id])
+  targetRoles       String[]
+  targetIndustries  String[]
+  targetCompanies   String[]
+  excludedCompanies String[]
+  compMin           Int?
+  compMax           Int?
+  compCurrency      String       @default("USD")
+  geoLocations      String[]
+  remotePolicy      RemotePolicy @default(ANY)
+  workAuth          String?
+  careerGoals       String?      @db.Text
+  compStructured    Json?
+  updatedAt         DateTime     @updatedAt
+}
+
+model Opportunity {
+  id               String                       @id @default(cuid())
+  title            String
+  company          String
+  sourceUrl        String?
+  sourcePlatform   OpportunitySource
+  jdText           String                       @db.Text
+  jdStructuredJson Json?
+  dismissed        Boolean                      @default(false)
+  discoveredAt     DateTime                     @default(now())
+  embedding        Unsupported("vector(1536)")?
+  applications     Application[]
+}
+
+model Application {
+  id                 String           @id @default(cuid())
+  candidateId        String
+  candidate          Candidate        @relation(fields: [candidateId], references: [id])
+  opportunityId      String
+  opportunity        Opportunity      @relation(fields: [opportunityId], references: [id])
+  state              ApplicationState @default(DISCOVERED)
+  targetRoleSnapshot Json
+  shortlistedAt      DateTime?
+  submittedAt        DateTime?
+  rejectedAt         DateTime?
+  acceptedAt         DateTime?
+  archivedAt         DateTime?
+  artifacts          Artifact[]
+  interviews         Interview[]
+  events             Event[]
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@unique([candidateId, opportunityId])
+  @@index([state])
+}
+
+model Artifact {
+  id                String                       @id @default(cuid())
+  applicationId     String
+  application       Application                  @relation(fields: [applicationId], references: [id])
+  type              ArtifactType
+  state             ArtifactState                @default(DRAFT)
+  contentJson       Json
+  contentText       String?                      @db.Text
+  gcsUri            String?
+  versionNumber     Int
+  parentVersionId   String?
+  parentVersion     Artifact?                    @relation("ArtifactLineage", fields: [parentVersionId], references: [id])
+  childVersions     Artifact[]                   @relation("ArtifactLineage")
+  generatedByWorker String
+  generationContext Json
+  embedding         Unsupported("vector(1536)")?
+  generatedAt       DateTime                     @default(now())
+  approvedAt        DateTime?
+  archivedAt        DateTime?
+
+  @@index([applicationId, type, versionNumber])
+}
+
+model Recruiter {
+  id          String      @id @default(cuid())
+  candidateId String
+  candidate   Candidate   @relation(fields: [candidateId], references: [id])
+  name        String
+  email       String?
+  company     String?
+  linkedinUrl String?
+  notes       String?     @db.Text
+  interviews  Interview[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Interview {
+  id               String        @id @default(cuid())
+  applicationId    String
+  application      Application   @relation(fields: [applicationId], references: [id])
+  recruiterId      String?
+  recruiter        Recruiter?    @relation(fields: [recruiterId], references: [id])
+  scheduledFor     DateTime
+  durationMinutes  Int?
+  interviewType    InterviewType
+  preparationNotes String?       @db.Text
+  sessionNotes     String?       @db.Text
+  outcomeJson      Json?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+}
+
+model Event {
+  id             String       @id @default(cuid())
+  type           EventType
+  candidateId    String
+  candidate      Candidate    @relation(fields: [candidateId], references: [id])
+  applicationId  String?
+  application    Application? @relation(fields: [applicationId], references: [id])
+  payloadJson    Json
+  emittedBy      String
+  emittedAt      DateTime     @default(now())
+  consumedByJson Json         @default("[]")
+
+  @@index([type, emittedAt])
+  @@index([applicationId, emittedAt])
+}
+
+model Insight {
+  id            String      @id @default(cuid())
+  candidateId   String
+  candidate     Candidate   @relation(fields: [candidateId], references: [id])
+  applicationId String?
+  type          InsightType
+  contentJson   Json
+  confidence    Float
+  supersededBy  String?
+  supersededAt  DateTime?
+  generatedAt   DateTime    @default(now())
 }
