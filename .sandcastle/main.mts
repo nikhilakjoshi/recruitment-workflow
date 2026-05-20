@@ -37,8 +37,25 @@ const MAX_ITERATIONS = 10;
 // (see sandboxConfig.mounts below). No copying node_modules from host; the
 // store provides packages on demand and copies (not hard-links — cross-mount)
 // them into the worktree's node_modules in seconds.
+// Write the install transcript to the bind-mounted pnpm store path so it
+// persists on the host even when the container exits. Sandcastle does not
+// surface failed-hook stdout/stderr, so the host-side file is our only way
+// to read the actual pnpm error. Inspect via:
+//   cat ~/Library/pnpm/store/_install.log
 const hooks = {
-  sandbox: { onSandboxReady: [{ command: "pnpm install --prefer-offline" }] },
+  sandbox: {
+    onSandboxReady: [
+      {
+        // CI=true skips ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY.
+        // --store-dir is explicit because pnpm 10 ignores PNPM_STORE_DIR env;
+        // without this it creates a store at $WORKSPACE/.pnpm-store and
+        // doesn't reuse the bind-mounted host store at all.
+        command:
+          "CI=true pnpm install --prefer-offline --store-dir /home/agent/.pnpm-store >/home/agent/.pnpm-store/_install.log 2>&1",
+        timeoutMs: 600000,
+      },
+    ],
+  },
 };
 
 // node_modules is NOT copied from host. The shared pnpm store provides

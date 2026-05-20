@@ -49,6 +49,19 @@ while true; do
     log "dispatching for ${count} open issue(s) — log: ${run_log}"
     if pnpm tsx .sandcastle/main.mts >>"$run_log" 2>&1; then
       log "dispatch ${ts} completed cleanly"
+      # The merger merged the feature branch into local main (Sandcastle syncs
+      # the sandbox worktree back to host .git). Push so origin tracks reality.
+      # Only push when local main is actually ahead of origin/main.
+      if git fetch --quiet origin main 2>/dev/null; then
+        ahead=$(git rev-list --count origin/main..main 2>/dev/null || echo 0)
+        if [ "$ahead" -gt 0 ]; then
+          if git push origin main >>"$run_log" 2>&1; then
+            log "pushed ${ahead} commit(s) to origin/main"
+          else
+            log "WARN: git push origin main failed — see ${run_log}"
+          fi
+        fi
+      fi
     else
       log "dispatch ${ts} exited non-zero — see ${run_log}"
     fi
