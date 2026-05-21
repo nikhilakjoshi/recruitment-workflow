@@ -17,14 +17,30 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ArtifactType } from "@prisma/client";
 import { TextDiff } from "./text-diff";
 import { toastError, toastSuccess } from "@/lib/ui/toast";
 import {
   approveArtifactAction,
   editArtifactAction,
+  generatePdfAction,
+  regenerateCoverLetterAction,
+  regenerateResumeAction,
   rejectArtifactAction,
   requireReviewAction,
 } from "@/app/(authed)/applications/[id]/_actions";
+
+const REGENERATE_ACTIONS: Partial<
+  Record<ArtifactType, (applicationId: string) => Promise<{ ok: boolean; error?: string }>>
+> = {
+  [ArtifactType.TAILORED_RESUME]: regenerateResumeAction,
+  [ArtifactType.COVER_LETTER]: regenerateCoverLetterAction,
+};
+
+const PDF_RENDERABLE_TYPES = new Set<ArtifactType>([
+  ArtifactType.TAILORED_RESUME,
+  ArtifactType.COVER_LETTER,
+]);
 
 type Props = {
   open: boolean;
@@ -139,6 +155,40 @@ export function ApprovalGate({
     }
   }
 
+  const regenerateAction = REGENERATE_ACTIONS[artifact.type];
+  const canRegenerate = Boolean(regenerateAction);
+  const canRenderPdf = PDF_RENDERABLE_TYPES.has(artifact.type);
+
+  async function regenerate() {
+    if (!regenerateAction) return;
+    setPending(true);
+    try {
+      const res = await regenerateAction(applicationId);
+      if (!res.ok) {
+        toastError(res.error ?? "Regenerate failed");
+        return;
+      }
+      toastSuccess("Regenerate requested. New version in ~1–2 minutes.");
+      router.refresh();
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function generatePdf() {
+    setPending(true);
+    try {
+      const res = await generatePdfAction(applicationId, artifact.id);
+      if (!res.ok) {
+        toastError(res.error);
+        return;
+      }
+      window.open(res.value.signedUrl, "_blank", "noopener,noreferrer");
+    } finally {
+      setPending(false);
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-5xl">
@@ -168,6 +218,18 @@ export function ApprovalGate({
               >
                 <DownloadIcon className="size-3" /> Download original
               </a>
+            ) : null}
+            {canRenderPdf ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                disabled={pending}
+                onClick={generatePdf}
+                className="self-start"
+              >
+                <DownloadIcon className="size-3" /> Download PDF
+              </Button>
             ) : null}
             {otherVersions.length > 0 ? (
               <div className="flex flex-col gap-1">
@@ -212,18 +274,24 @@ export function ApprovalGate({
             </>
           ) : (
             <>
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <Button variant="outline" disabled>
-                      Regenerate
-                    </Button>
-                  }
-                />
-                <TooltipContent>
-                  Available once a worker generates this artifact type.
-                </TooltipContent>
-              </Tooltip>
+              {canRegenerate ? (
+                <Button variant="outline" disabled={pending} onClick={regenerate}>
+                  Regenerate
+                </Button>
+              ) : (
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <Button variant="outline" disabled>
+                        Regenerate
+                      </Button>
+                    }
+                  />
+                  <TooltipContent>
+                    Available once a worker generates this artifact type.
+                  </TooltipContent>
+                </Tooltip>
+              )}
               <Button
                 variant="outline"
                 disabled={pending || !canMutate || artifact.contentText == null}

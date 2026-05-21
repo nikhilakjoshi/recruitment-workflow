@@ -56,6 +56,32 @@ export async function uploadMasterCV(
   };
 }
 
+export async function uploadGeneratedArtifactPdf(
+  applicationId: string,
+  artifactType: ArtifactType,
+  buffer: Buffer,
+): Promise<UploadResult> {
+  const bucket = getBucket();
+  const timestamp = new Date().toISOString();
+  const typeKey = artifactType.toLowerCase();
+  const objectKey = `artifacts/${applicationId}/${typeKey}-${timestamp}.pdf`;
+
+  await bucket.file(objectKey).save(buffer, {
+    contentType: "application/pdf",
+    resumable: false,
+  });
+
+  const gcsUri = buildGcsUri(bucket.name, objectKey);
+  const signedReadUrl = await getSignedReadUrl(gcsUri);
+
+  return {
+    gcsUri,
+    signedReadUrl,
+    filename: objectKey.slice(`artifacts/${applicationId}/`.length),
+    sizeBytes: buffer.byteLength,
+  };
+}
+
 export async function uploadArtifact(
   applicationId: string,
   artifactType: ArtifactType,
