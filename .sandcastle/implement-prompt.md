@@ -14,6 +14,14 @@ Work on branch {{BRANCH}}. Make commits and run tests.
 
 **This project uses pnpm, not npm.** Use `pnpm add <pkg>` for new dependencies (writes to `pnpm-lock.yaml`).
 
+**Environment is pre-configured.** A `.env` file already exists at the worktree
+root with the right `DATABASE_URL` pointing to `host.docker.internal:5433`
+(the host machine's docker-compose Postgres with pgvector + all prior
+migrations already applied). Do NOT overwrite `DATABASE_URL` or replace the
+.env file. If you need an additional env var (e.g., a new chunk-specific
+secret), APPEND to the existing .env. Never use `localhost:5433` from inside
+the sandbox — that won't resolve.
+
 **Every outbound artifact** (resume, cover letter, LinkedIn edit, recruiter response, application submission) **must go through the approval gate** — there is no auto-send. This is foundational to the product (see PRODUCT.md §15).
 
 # CONTEXT

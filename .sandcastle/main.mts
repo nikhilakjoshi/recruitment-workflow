@@ -43,6 +43,38 @@ const MAX_ITERATIONS = 10;
 // to read the actual pnpm error. Inspect via:
 //   cat ~/Library/pnpm/store/_install.log
 const hooks = {
+  // host.onWorktreeReady runs ON THE HOST before the container starts,
+  // inside the freshly-created git worktree. We write a .env file here
+  // so the container's tools (Prisma, Vitest, Next dev server) can reach
+  // the host's docker-compose Postgres via `host.docker.internal:5433`
+  // (Docker Desktop's automatic bridge to the host machine).
+  //
+  // Without this, agents try `localhost:5433` from inside the container —
+  // which resolves to the container itself, where no Postgres exists —
+  // and any DB-dependent test fails with "Can't reach database server".
+  host: {
+    onWorktreeReady: [
+      {
+        command:
+          "cat > .env <<'EOF'\n" +
+          "DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:5433/career_os?schema=public\n" +
+          "AUTH_SECRET=test-secret-32-chars-padding-padding-padding-padding\n" +
+          "AUTH_USER_EMAIL=me@example.com\n" +
+          "AUTH_USER_PASSWORD_HASH=$2b$12$KIzv0WPiqgIBSnk3CnRdvuD7yU3UA2vCWOLJrUztMjFcg4D2eXX/y\n" +
+          "CRON_SECRET=test-cron-secret\n" +
+          "AI_GATEWAY_API_KEY=test\n" +
+          "BRAVE_SEARCH_API_KEY=test\n" +
+          "GCS_PROJECT_ID=test\n" +
+          "GCS_BUCKET=test\n" +
+          "GCS_KEY_FILE=./gcs-service-account.json\n" +
+          "EOF",
+      },
+    ],
+  },
+  // sandbox.onSandboxReady runs INSIDE the container once it's up.
+  // pnpm install --prefer-offline reads from the bind-mounted host pnpm store
+  // (see sandboxConfig.mounts below). Output captured to the host-visible
+  // store dir so failed-install errors surface for debugging.
   sandbox: {
     onSandboxReady: [
       {
