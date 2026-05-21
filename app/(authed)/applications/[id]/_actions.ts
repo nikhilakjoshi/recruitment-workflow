@@ -1,9 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { ApplicationState } from "@prisma/client";
+import { ApplicationState, EventType } from "@prisma/client";
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
+import { emitEvent } from "@/lib/events";
 import { transition } from "@/lib/state-machine/application";
 import { InvalidTransitionError } from "@/lib/state-machine/errors";
 import {
@@ -12,6 +13,8 @@ import {
   rejectArtifact,
   requireReview,
 } from "@/lib/artifacts/transitions";
+import { dispatchOnce } from "@/lib/workers/dispatch";
+import "@/lib/workers";
 
 export type ActionResult<T = unknown> =
   | { ok: true; value: T }
@@ -92,6 +95,28 @@ export async function rejectArtifactAction(
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Reject failed" };
   }
+}
+
+export async function regenerateEvaluationAction(
+  applicationId: string,
+): Promise<ActionResult<{ requested: true }>> {
+  const ownerError = await requireOwner(applicationId);
+  if (ownerError) return { ok: false, error: ownerError };
+
+  const app = await prisma.application.findUniqueOrThrow({
+    where: { id: applicationId },
+    select: { candidateId: true },
+  });
+  await emitEvent({
+    type: EventType.EVALUATION_REGENERATION_REQUESTED,
+    candidateId: app.candidateId,
+    applicationId,
+    payload: { reason: "manual" },
+    emittedBy: "user",
+  });
+  await dispatchOnce();
+  revalidatePath(`/applications/${applicationId}`);
+  return { ok: true, value: { requested: true } };
 }
 
 export async function editArtifactAction(

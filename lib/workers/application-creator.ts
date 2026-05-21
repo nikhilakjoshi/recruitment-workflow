@@ -29,7 +29,10 @@ export const applicationCreatorWorker: Worker<
   ApplicationCreatorOutput
 > = {
   name: "application-creator",
-  scope: "per-application",
+  runtime: "per-application",
+  scope: {
+    candidate: { masterCV: false, rolePreference: true },
+  },
   model: "cheap",
   subscribes: [EventType.JOB_SHORTLISTED],
   async run(ctx) {

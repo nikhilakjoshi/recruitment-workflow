@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { dispatchOnce } from "@/lib/workers/dispatch";
-import "@/lib/workers/registered";
+import "@/lib/workers";
 
 export const dynamic = "force-dynamic";
 

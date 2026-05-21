@@ -6,7 +6,7 @@ import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { emitEvent } from "@/lib/events";
 import { dispatchOnce } from "@/lib/workers/dispatch";
-import "@/lib/workers/registered";
+import "@/lib/workers";
 import {
   opportunityCreateSchema,
   type OpportunityCreateInput,

@@ -7,12 +7,13 @@ import {
   registerWorker,
   workersForEvent,
 } from "./registry";
-import type { Worker } from "./types";
+import { EMPTY_SCOPE, type Worker } from "./types";
 
 function makeWorker(name: string, subscribes: EventType[]): Worker {
   return {
     name,
-    scope: "always-on",
+    runtime: "always-on",
+    scope: EMPTY_SCOPE,
     model: "cheap",
     subscribes,
     async run() {
@@ -53,7 +54,8 @@ describe("worker registry", () => {
   it("workersForEvent skips workers with no subscriptions", () => {
     registerWorker({
       name: "scheduled-only",
-      scope: "always-on",
+      runtime: "always-on",
+      scope: EMPTY_SCOPE,
       model: "cheap",
       schedule: "0 9 * * *",
       async run() {
