@@ -45,11 +45,7 @@ export async function resolveScopedMemory(
       rolePreference: scope.candidate.rolePreference,
     },
   });
-
-  let candidate: ScopedCandidate | undefined;
-  if (candidateRow) {
-    candidate = candidateRow;
-  }
+  const candidate: ScopedCandidate | undefined = candidateRow ?? undefined;
 
   let application: ScopedApplication | undefined;
   if (scope.application && event.applicationId) {
@@ -67,7 +63,7 @@ export async function resolveScopedMemory(
         const artifacts = await prisma.artifact.findMany({
           where: {
             applicationId: appRow.id,
-            type: { in: types as ArtifactType[] },
+            type: { in: types },
           },
           orderBy: [{ type: "asc" }, { versionNumber: "desc" }],
         });

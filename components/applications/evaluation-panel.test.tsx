@@ -1,8 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
-
-afterEach(() => cleanup());
 import { ArtifactState, ArtifactType, type Artifact } from "@prisma/client";
 
 vi.mock("@/app/(authed)/applications/[id]/_actions", () => ({
@@ -15,6 +13,8 @@ vi.mock("@/lib/ui/toast", () => ({
 }));
 
 import { EvaluationPanel } from "./evaluation-panel";
+
+afterEach(() => cleanup());
 
 const APPLICATION_ID = "app_1";
 
