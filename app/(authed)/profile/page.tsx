@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { Card } from "@/components/ui/card";
 import { MasterCVUploader } from "@/components/profile/master-cv-uploader";
 import { RolePreferenceForm } from "@/components/profile/role-preference-form";
+import { LinkedinOptimizerForm } from "@/components/profile/linkedin-optimizer-form";
 
 type Search = { reason?: string };
 
@@ -42,6 +43,11 @@ export default async function ProfilePage({
       <Card className="flex flex-col gap-4 p-6">
         <h2 className="text-lg font-medium">Master CV</h2>
         <MasterCVUploader hasExistingCV={Boolean(candidate.masterCV?.gcsUri)} />
+      </Card>
+
+      <Card className="flex flex-col gap-4 p-6">
+        <h2 className="text-lg font-medium">LinkedIn profile optimizer</h2>
+        <LinkedinOptimizerForm />
       </Card>
 
       <Card className="flex flex-col gap-4 p-6">

@@ -28,6 +28,10 @@ export default async function ApplicationWorkspacePage({
     include: {
       opportunity: true,
       artifacts: { orderBy: [{ type: "asc" }, { versionNumber: "desc" }] },
+      interviews: {
+        orderBy: { scheduledFor: "asc" },
+        include: { recruiter: { select: { id: true, name: true } } },
+      },
     },
   });
   if (!application || application.candidateId !== candidate.id) {
@@ -37,6 +41,11 @@ export default async function ApplicationWorkspacePage({
   const events = await listEventsForApplication(application.id);
   const latestEvaluation =
     application.artifacts.find((a) => a.type === "EVALUATION") ?? null;
+  const recruiters = await prisma.recruiter.findMany({
+    where: { candidateId: candidate.id },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, name: true, email: true },
+  });
 
   return (
     <div className="flex flex-col gap-6">
@@ -71,6 +80,7 @@ export default async function ApplicationWorkspacePage({
               application={application}
               opportunity={application.opportunity}
               latestEvaluation={latestEvaluation}
+              recruiters={recruiters}
             />
           </TabsContent>
           <TabsContent value="artifacts">
@@ -80,7 +90,10 @@ export default async function ApplicationWorkspacePage({
             />
           </TabsContent>
           <TabsContent value="interviews">
-            <InterviewsTab />
+            <InterviewsTab
+              applicationId={application.id}
+              interviews={application.interviews}
+            />
           </TabsContent>
           <TabsContent value="activity">
             <ActivityTab events={events} />

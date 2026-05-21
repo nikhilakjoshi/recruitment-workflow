@@ -1,7 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { ApplicationState, ArtifactState, ArtifactType, EventType, type Prisma } from "@prisma/client";
+import {
+  ApplicationState,
+  ArtifactState,
+  ArtifactType,
+  EventType,
+  InterviewType,
+  type Prisma,
+} from "@prisma/client";
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { emitEvent } from "@/lib/events";
@@ -300,6 +307,124 @@ export async function saveCoverLetterVersionAction(
   });
   revalidatePath(`/applications/${applicationId}`);
   return { ok: true, value: { artifactId: next.id } };
+}
+
+export type RecruiterReplyInput = {
+  recruiterId?: string | null;
+  recruiterName?: string;
+  recruiterEmail?: string | null;
+  replyBody: string;
+  replyDate?: string;
+};
+
+export async function logRecruiterReplyAction(
+  applicationId: string,
+  input: RecruiterReplyInput,
+): Promise<ActionResult<{ recruiterId: string; eventId: string }>> {
+  const ownerError = await requireOwner(applicationId);
+  if (ownerError) return { ok: false, error: ownerError };
+
+  const app = await prisma.application.findUniqueOrThrow({
+    where: { id: applicationId },
+    select: { candidateId: true },
+  });
+
+  const body = (input.replyBody ?? "").trim();
+  if (body.length < 1) return { ok: false, error: "Reply body is required" };
+
+  let recruiterId = input.recruiterId ?? null;
+  if (!recruiterId) {
+    const name = (input.recruiterName ?? "").trim();
+    if (!name) return { ok: false, error: "Recruiter name is required" };
+    const created = await prisma.recruiter.create({
+      data: {
+        candidateId: app.candidateId,
+        name,
+        email: input.recruiterEmail?.trim() || null,
+      },
+      select: { id: true },
+    });
+    recruiterId = created.id;
+  } else {
+    const exists = await prisma.recruiter.findUnique({
+      where: { id: recruiterId },
+      select: { candidateId: true },
+    });
+    if (!exists || exists.candidateId !== app.candidateId) {
+      return { ok: false, error: "Recruiter not found" };
+    }
+  }
+
+  const event = await emitEvent({
+    type: EventType.RECRUITER_REPLY_DETECTED,
+    candidateId: app.candidateId,
+    applicationId,
+    payload: {
+      recruiterId,
+      replyBody: body,
+      replyDate: input.replyDate ?? new Date().toISOString(),
+    },
+    emittedBy: "user",
+  });
+
+  await dispatchOnce();
+  revalidatePath(`/applications/${applicationId}`);
+  return { ok: true, value: { recruiterId, eventId: event.id } };
+}
+
+export type ScheduleInterviewInput = {
+  recruiterId?: string | null;
+  interviewType: InterviewType;
+  scheduledFor: string;
+  durationMinutes?: number;
+};
+
+export async function scheduleInterviewAction(
+  applicationId: string,
+  input: ScheduleInterviewInput,
+): Promise<ActionResult<{ interviewId: string; eventId: string }>> {
+  const ownerError = await requireOwner(applicationId);
+  if (ownerError) return { ok: false, error: ownerError };
+
+  const app = await prisma.application.findUniqueOrThrow({
+    where: { id: applicationId },
+    select: { candidateId: true },
+  });
+
+  const when = new Date(input.scheduledFor);
+  if (Number.isNaN(when.getTime())) {
+    return { ok: false, error: "Invalid scheduled-for date" };
+  }
+  if (!Object.values(InterviewType).includes(input.interviewType)) {
+    return { ok: false, error: "Invalid interview type" };
+  }
+
+  const interview = await prisma.interview.create({
+    data: {
+      applicationId,
+      recruiterId: input.recruiterId ?? null,
+      scheduledFor: when,
+      durationMinutes: input.durationMinutes ?? 60,
+      interviewType: input.interviewType,
+    },
+    select: { id: true },
+  });
+
+  const event = await emitEvent({
+    type: EventType.INTERVIEW_SCHEDULED,
+    candidateId: app.candidateId,
+    applicationId,
+    payload: {
+      interviewId: interview.id,
+      interviewType: input.interviewType,
+      scheduledFor: when.toISOString(),
+    },
+    emittedBy: "user",
+  });
+
+  await dispatchOnce();
+  revalidatePath(`/applications/${applicationId}`);
+  return { ok: true, value: { interviewId: interview.id, eventId: event.id } };
 }
 
 export async function generatePdfAction(
