@@ -1,5 +1,5 @@
 import { EventType } from "@prisma/client";
-import type { Worker } from "./types";
+import { EMPTY_SCOPE, type Worker } from "./types";
 
 export type EchoOutput = {
   echoedEventId: string;
@@ -8,7 +8,8 @@ export type EchoOutput = {
 
 export const echoWorker: Worker<unknown, EchoOutput> = {
   name: "echo",
-  scope: "always-on",
+  runtime: "always-on",
+  scope: EMPTY_SCOPE,
   model: "cheap",
   subscribes: [EventType.JOB_DISCOVERED],
   async run(ctx) {

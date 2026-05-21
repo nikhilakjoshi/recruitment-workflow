@@ -6,7 +6,7 @@ import { emitEvent } from "@/lib/events";
 import { _resetRegistryForTests, registerWorker } from "./registry";
 import { echoWorker } from "./echo-worker";
 import { dispatchOnce } from "./dispatch";
-import type { Worker } from "./types";
+import { EMPTY_SCOPE, type Worker } from "./types";
 
 let candidateId: string;
 
@@ -96,7 +96,8 @@ describe("dispatchOnce", () => {
   it("records FAILED EventConsumption rows when a worker throws and continues to next event", async () => {
     const flaky: Worker<unknown, null> = {
       name: "flaky",
-      scope: "always-on",
+      runtime: "always-on",
+      scope: EMPTY_SCOPE,
       model: "cheap",
       subscribes: [EventType.JOB_DISCOVERED],
       async run() {

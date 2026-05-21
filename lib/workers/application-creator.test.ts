@@ -67,7 +67,7 @@ async function makeContext(event: Event): Promise<WorkerContext<ApplicationCreat
     event,
     candidate,
     application: null,
-    scopedMemory: { candidate, application: null, event },
+    scopedMemory: { candidate, tokenBudgetUsed: 0, excludedReasons: [] },
     governance: { approvalRequired: false },
     input: event.payloadJson as ApplicationCreatorInput,
   };

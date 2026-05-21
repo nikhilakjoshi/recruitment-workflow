@@ -1,9 +1,11 @@
 import { EventConsumptionStatus, type Event } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { listWorkers } from "./registry";
-import type { GovernanceConstraints, ScopedMemory, Worker, WorkerContext } from "./types";
+import { resolveScopedMemory } from "./scoped-memory";
+import type { GovernanceConstraints, Worker, WorkerContext } from "./types";
 
 const DEFAULT_TIMEOUT_MS = 50_000;
+const DEFAULT_TOKEN_BUDGET = 30_000;
 const BATCH_SIZE = 50;
 
 export type DispatchSummary = {
@@ -19,7 +21,9 @@ async function buildContext(worker: Worker, event: Event): Promise<WorkerContext
     ? await prisma.application.findUnique({ where: { id: event.applicationId } })
     : null;
 
-  const scopedMemory: ScopedMemory = { candidate, application, event };
+  const scopedMemory = await resolveScopedMemory(worker.scope, event, {
+    maxTokens: DEFAULT_TOKEN_BUDGET,
+  });
   const governance: GovernanceConstraints = {
     approvalRequired: worker.approvalRequired ?? false,
   };

@@ -35,6 +35,8 @@ export default async function ApplicationWorkspacePage({
   }
 
   const events = await listEventsForApplication(application.id);
+  const latestEvaluation =
+    application.artifacts.find((a) => a.type === "EVALUATION") ?? null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -65,7 +67,11 @@ export default async function ApplicationWorkspacePage({
             <TabsTrigger value="activity">Activity</TabsTrigger>
           </TabsList>
           <TabsContent value="overview">
-            <OverviewTab application={application} opportunity={application.opportunity} />
+            <OverviewTab
+              application={application}
+              opportunity={application.opportunity}
+              latestEvaluation={latestEvaluation}
+            />
           </TabsContent>
           <TabsContent value="artifacts">
             <ArtifactsTab
