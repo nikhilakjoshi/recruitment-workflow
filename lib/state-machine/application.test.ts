@@ -7,7 +7,8 @@ import { InvalidTransitionError } from "./errors";
 
 async function ensureFixture() {
   // Single-tenant constraint blocks a second Candidate; wipe first.
-  await prisma.event.deleteMany({});
+  // Event is append-only at the row level — use TRUNCATE which bypasses row triggers.
+  await prisma.$executeRawUnsafe('TRUNCATE TABLE "Event" CASCADE');
   await prisma.application.deleteMany({});
   await prisma.opportunity.deleteMany({});
   await prisma.candidate.deleteMany({});
@@ -44,7 +45,7 @@ async function freshApplication(state: ApplicationState = ApplicationState.DISCO
 }
 
 async function cleanup() {
-  await prisma.event.deleteMany({});
+  await prisma.$executeRawUnsafe('TRUNCATE TABLE "Event" CASCADE');
   await prisma.application.deleteMany({});
   await prisma.opportunity.deleteMany({});
 }

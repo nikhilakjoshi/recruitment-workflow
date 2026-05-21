@@ -123,6 +123,11 @@ enum InsightType {
   RECRUITER_RESPONSE_PATTERN
 }
 
+enum EventConsumptionStatus {
+  SUCCEEDED
+  FAILED
+}
+
 model User {
   id           String     @id @default(cuid())
   email        String     @unique
@@ -266,19 +271,47 @@ model Interview {
 }
 
 model Event {
-  id             String       @id @default(cuid())
-  type           EventType
-  candidateId    String
-  candidate      Candidate    @relation(fields: [candidateId], references: [id])
-  applicationId  String?
-  application    Application? @relation(fields: [applicationId], references: [id])
-  payloadJson    Json
-  emittedBy      String
-  emittedAt      DateTime     @default(now())
-  consumedByJson Json         @default("[]")
+  id            String             @id @default(cuid())
+  type          EventType
+  candidateId   String
+  candidate     Candidate          @relation(fields: [candidateId], references: [id])
+  applicationId String?
+  application   Application?       @relation(fields: [applicationId], references: [id])
+  payloadJson   Json
+  emittedBy     String
+  emittedAt     DateTime           @default(now())
+  consumptions  EventConsumption[]
 
   @@index([type, emittedAt])
   @@index([applicationId, emittedAt])
+}
+
+model EventConsumption {
+  id           String                 @id @default(cuid())
+  eventId      String
+  event        Event                  @relation(fields: [eventId], references: [id])
+  workerName   String
+  status       EventConsumptionStatus
+  errorMessage String?
+  consumedAt   DateTime               @default(now())
+  durationMs   Int?
+
+  @@unique([eventId, workerName])
+  @@index([workerName, status])
+}
+
+model LLMCall {
+  id            String   @id @default(cuid())
+  worker        String
+  model         String
+  inputTokens   Int
+  cachedTokens  Int      @default(0)
+  outputTokens  Int
+  costUsd       Decimal  @db.Decimal(10, 6)
+  applicationId String?
+  eventId       String?
+  startedAt     DateTime @default(now())
+  durationMs    Int
 }
 
 model Insight {
