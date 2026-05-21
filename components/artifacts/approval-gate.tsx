@@ -58,6 +58,26 @@ export function ApprovalGate({
     artifact.state === ArtifactState.DRAFT ||
     artifact.state === ArtifactState.PENDING_REVIEW;
 
+  function renderBody() {
+    if (editing) {
+      return (
+        <Textarea
+          rows={20}
+          value={editedText}
+          onChange={(e) => setEditedText(e.target.value)}
+        />
+      );
+    }
+    if (compareWith && artifact.contentText && compareWith.contentText) {
+      return <TextDiff a={compareWith.contentText} b={artifact.contentText} />;
+    }
+    return (
+      <pre className="max-h-[28rem] overflow-auto rounded-lg border border-input bg-muted/30 p-3 text-xs whitespace-pre-wrap">
+        {artifact.contentText ?? "(no inline text — use Download original)"}
+      </pre>
+    );
+  }
+
   async function moveToReview() {
     if (artifact.state !== ArtifactState.DRAFT) return;
     setPending(true);
@@ -170,21 +190,7 @@ export function ApprovalGate({
             ) : null}
           </aside>
 
-          <section className="flex flex-col gap-3">
-            {editing ? (
-              <Textarea
-                rows={20}
-                value={editedText}
-                onChange={(e) => setEditedText(e.target.value)}
-              />
-            ) : compareWith && artifact.contentText && compareWith.contentText ? (
-              <TextDiff a={compareWith.contentText} b={artifact.contentText} />
-            ) : (
-              <pre className="max-h-[28rem] overflow-auto rounded-lg border border-input bg-muted/30 p-3 text-xs whitespace-pre-wrap">
-                {artifact.contentText ?? "(no inline text — use Download original)"}
-              </pre>
-            )}
-          </section>
+          <section className="flex flex-col gap-3">{renderBody()}</section>
         </div>
 
         <DialogFooter>

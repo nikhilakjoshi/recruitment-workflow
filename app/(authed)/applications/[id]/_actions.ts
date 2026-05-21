@@ -17,28 +17,25 @@ export type ActionResult<T = unknown> =
   | { ok: true; value: T }
   | { ok: false; error: string };
 
-async function requireOwner(applicationId: string): Promise<
-  | { candidateId: string; applicationId: string }
-  | { error: string; status?: number }
-> {
+async function requireOwner(applicationId: string): Promise<string | null> {
   const session = await getSession();
-  if (!session.userId) return { error: "Unauthorized" };
+  if (!session.userId) return "Unauthorized";
   const app = await prisma.application.findUnique({
     where: { id: applicationId },
-    select: { id: true, candidateId: true, candidate: { select: { userId: true } } },
+    select: { candidate: { select: { userId: true } } },
   });
   if (!app || app.candidate.userId !== session.userId) {
-    return { error: "Application not found" };
+    return "Application not found";
   }
-  return { candidateId: app.candidateId, applicationId: app.id };
+  return null;
 }
 
 export async function transitionApplicationAction(
   applicationId: string,
   next: ApplicationState,
 ): Promise<ActionResult<{ state: ApplicationState }>> {
-  const ctx = await requireOwner(applicationId);
-  if ("error" in ctx) return { ok: false, error: ctx.error };
+  const ownerError = await requireOwner(applicationId);
+  if (ownerError) return { ok: false, error: ownerError };
 
   try {
     const updated = await transition(applicationId, next, { actor: "user" });
@@ -70,8 +67,8 @@ export async function approveArtifactAction(
   artifactId: string,
   applicationId: string,
 ): Promise<ActionResult<{ artifactId: string }>> {
-  const ctx = await requireOwner(applicationId);
-  if ("error" in ctx) return { ok: false, error: ctx.error };
+  const ownerError = await requireOwner(applicationId);
+  if (ownerError) return { ok: false, error: ownerError };
   try {
     await approveArtifact({ artifactId, actor: "user" });
     revalidatePath(`/applications/${applicationId}`);
@@ -86,8 +83,8 @@ export async function rejectArtifactAction(
   applicationId: string,
   reason?: string,
 ): Promise<ActionResult<{ artifactId: string }>> {
-  const ctx = await requireOwner(applicationId);
-  if ("error" in ctx) return { ok: false, error: ctx.error };
+  const ownerError = await requireOwner(applicationId);
+  if (ownerError) return { ok: false, error: ownerError };
   try {
     await rejectArtifact({ artifactId, actor: "user", reason });
     revalidatePath(`/applications/${applicationId}`);
@@ -102,8 +99,8 @@ export async function editArtifactAction(
   applicationId: string,
   contentText: string,
 ): Promise<ActionResult<{ artifactId: string }>> {
-  const ctx = await requireOwner(applicationId);
-  if ("error" in ctx) return { ok: false, error: ctx.error };
+  const ownerError = await requireOwner(applicationId);
+  if (ownerError) return { ok: false, error: ownerError };
   try {
     const next = await editArtifact({ artifactId, actor: "user", contentText });
     revalidatePath(`/applications/${applicationId}`);

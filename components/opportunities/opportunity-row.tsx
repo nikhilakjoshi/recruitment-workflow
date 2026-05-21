@@ -23,6 +23,36 @@ export function OpportunityRow({ opportunity }: Props) {
   const [pending, setPending] = React.useState(false);
   const application = opportunity.applications[0] ?? null;
 
+  function renderStatus() {
+    if (application) return <Badge>{application.state}</Badge>;
+    if (opportunity.dismissed) return <Badge variant="secondary">Dismissed</Badge>;
+    return <span className="text-muted-foreground">Discovered</span>;
+  }
+
+  function renderActions() {
+    if (application) {
+      return (
+        <Link
+          href={`/applications/${application.id}`}
+          className={buttonVariants({ variant: "outline", size: "sm" })}
+        >
+          Open
+        </Link>
+      );
+    }
+    if (opportunity.dismissed) return null;
+    return (
+      <div className="flex justify-end gap-2">
+        <Button size="sm" disabled={pending} onClick={shortlist}>
+          Shortlist
+        </Button>
+        <Button size="sm" variant="outline" disabled={pending} onClick={dismiss}>
+          Dismiss
+        </Button>
+      </div>
+    );
+  }
+
   async function shortlist() {
     setPending(true);
     try {
@@ -70,34 +100,8 @@ export function OpportunityRow({ opportunity }: Props) {
       <TableCell>
         <Badge variant="outline">{opportunity.sourcePlatform}</Badge>
       </TableCell>
-      <TableCell>
-        {application ? (
-          <Badge>{application.state}</Badge>
-        ) : opportunity.dismissed ? (
-          <Badge variant="secondary">Dismissed</Badge>
-        ) : (
-          <span className="text-muted-foreground">Discovered</span>
-        )}
-      </TableCell>
-      <TableCell className="text-right">
-        {application ? (
-          <Link
-            href={`/applications/${application.id}`}
-            className={buttonVariants({ variant: "outline", size: "sm" })}
-          >
-            Open
-          </Link>
-        ) : opportunity.dismissed ? null : (
-          <div className="flex justify-end gap-2">
-            <Button size="sm" disabled={pending} onClick={shortlist}>
-              Shortlist
-            </Button>
-            <Button size="sm" variant="outline" disabled={pending} onClick={dismiss}>
-              Dismiss
-            </Button>
-          </div>
-        )}
-      </TableCell>
+      <TableCell>{renderStatus()}</TableCell>
+      <TableCell className="text-right">{renderActions()}</TableCell>
     </TableRow>
   );
 }

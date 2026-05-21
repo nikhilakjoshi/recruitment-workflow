@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ArtifactState, ArtifactType } from "@prisma/client";
+import { ArtifactState } from "@prisma/client";
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { uploadArtifact } from "@/lib/storage";
@@ -87,13 +87,13 @@ export async function POST(req: Request) {
   const rebuiltFile = new File([buffer], file.name, { type: file.type });
   const uploadResult = await uploadArtifact(
     applicationId,
-    artifactType as ArtifactType,
+    artifactType,
     rebuiltFile,
     file.type,
   );
 
   const latest = await prisma.artifact.findFirst({
-    where: { applicationId, type: artifactType as ArtifactType },
+    where: { applicationId, type: artifactType },
     orderBy: { versionNumber: "desc" },
     select: { versionNumber: true },
   });
@@ -105,7 +105,7 @@ export async function POST(req: Request) {
   const artifact = await prisma.artifact.create({
     data: {
       applicationId,
-      type: artifactType as ArtifactType,
+      type: artifactType,
       state: ArtifactState.DRAFT,
       contentJson: {},
       contentText,

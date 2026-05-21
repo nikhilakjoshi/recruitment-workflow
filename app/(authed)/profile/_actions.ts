@@ -32,33 +32,8 @@ export async function saveRolePreferenceAction(
   const data = parsed.data;
   const saved = await prisma.rolePreference.upsert({
     where: { candidateId: candidate.id },
-    create: {
-      candidateId: candidate.id,
-      targetRoles: data.targetRoles,
-      targetIndustries: data.targetIndustries,
-      targetCompanies: data.targetCompanies,
-      excludedCompanies: data.excludedCompanies,
-      compMin: data.compMin,
-      compMax: data.compMax,
-      compCurrency: data.compCurrency,
-      geoLocations: data.geoLocations,
-      remotePolicy: data.remotePolicy,
-      workAuth: data.workAuth,
-      careerGoals: data.careerGoals,
-    },
-    update: {
-      targetRoles: data.targetRoles,
-      targetIndustries: data.targetIndustries,
-      targetCompanies: data.targetCompanies,
-      excludedCompanies: data.excludedCompanies,
-      compMin: data.compMin,
-      compMax: data.compMax,
-      compCurrency: data.compCurrency,
-      geoLocations: data.geoLocations,
-      remotePolicy: data.remotePolicy,
-      workAuth: data.workAuth,
-      careerGoals: data.careerGoals,
-    },
+    create: { candidateId: candidate.id, ...data },
+    update: data,
     select: { id: true },
   });
 

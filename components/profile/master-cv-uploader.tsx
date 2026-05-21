@@ -15,6 +15,12 @@ export function MasterCVUploader({ hasExistingCV }: Props) {
   const inputRef = React.useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = React.useState(false);
 
+  function buttonLabel() {
+    if (uploading) return "Uploading…";
+    if (hasExistingCV) return "Replace Master CV";
+    return "Upload Master CV (PDF)";
+  }
+
   async function handleFile(file: File) {
     setUploading(true);
     try {
@@ -55,11 +61,7 @@ export function MasterCVUploader({ hasExistingCV }: Props) {
         onClick={() => inputRef.current?.click()}
       >
         <UploadCloudIcon />
-        {uploading
-          ? "Uploading…"
-          : hasExistingCV
-            ? "Replace Master CV"
-            : "Upload Master CV (PDF)"}
+        {buttonLabel()}
       </Button>
       {hasExistingCV ? (
         <p className="text-xs text-muted-foreground">
