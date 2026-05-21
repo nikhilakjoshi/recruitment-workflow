@@ -22,8 +22,8 @@ export default async function DashboardPage() {
     <div className="grid gap-4 lg:grid-cols-2">
       <ActiveApplicationsSection candidateId={candidate.id} />
       <PendingApprovalsSection candidateId={candidate.id} />
-      <RecruiterActivitySection />
-      <UpcomingInterviewsSection />
+      <RecruiterActivitySection candidateId={candidate.id} />
+      <UpcomingInterviewsSection candidateId={candidate.id} />
       <OpportunityDigestSection />
       <FollowUpAlertsSection candidateId={candidate.id} />
       <div className="lg:col-span-2">

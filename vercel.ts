@@ -8,5 +8,6 @@ export const config: VercelConfig = {
     { path: "/api/cron/scheduled/job-alert-aggregator", schedule: "0 8 * * *" },
     { path: "/api/cron/scheduled/application-tracker", schedule: "0 9 * * *" },
     { path: "/api/cron/scheduled/weekly-digest", schedule: "0 9 * * 0" },
+    { path: "/api/cron/narrative-themes", schedule: "0 10 * * 0" },
   ],
 };

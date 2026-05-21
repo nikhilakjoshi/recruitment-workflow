@@ -4,14 +4,25 @@ import * as React from "react";
 import type { Application, Artifact, Opportunity } from "@prisma/client";
 import { ChevronDownIcon, ChevronRightIcon } from "lucide-react";
 import { EvaluationPanel } from "./evaluation-panel";
+import {
+  RecruiterReplyForm,
+  type RecruiterOption,
+} from "./recruiter-reply-form";
+import { ScheduleInterviewForm } from "./schedule-interview-form";
 
 type Props = {
   application: Application;
   opportunity: Opportunity;
   latestEvaluation: Artifact | null;
+  recruiters: RecruiterOption[];
 };
 
-export function OverviewTab({ application, opportunity, latestEvaluation }: Props) {
+export function OverviewTab({
+  application,
+  opportunity,
+  latestEvaluation,
+  recruiters,
+}: Props) {
   const [open, setOpen] = React.useState(false);
   const snapshot = application.targetRoleSnapshot as Record<string, unknown> | null;
 
@@ -36,6 +47,17 @@ export function OverviewTab({ application, opportunity, latestEvaluation }: Prop
         </section>
 
         <EvaluationPanel applicationId={application.id} artifact={latestEvaluation} />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <RecruiterReplyForm
+          applicationId={application.id}
+          recruiters={recruiters}
+        />
+        <ScheduleInterviewForm
+          applicationId={application.id}
+          recruiters={recruiters}
+        />
       </div>
 
       <section className="grid gap-4 md:grid-cols-2">
