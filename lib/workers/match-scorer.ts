@@ -9,6 +9,7 @@ import { prisma } from "@/lib/db";
 import { emitEvent } from "@/lib/events";
 import { transition } from "@/lib/state-machine/application";
 import { callLLM, type LLMMessage } from "@/lib/ai/client";
+import { parseLLMJson } from "@/lib/ai/parse-json";
 import {
   evaluationSchema,
   fitFromScore,
@@ -35,17 +36,6 @@ export type MatchScorerOutput = {
   failed?: boolean;
   reason?: string;
 };
-
-function tryParseJson(text: string): unknown {
-  const trimmed = text.trim();
-  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-  const candidate = fenced ? fenced[1] : trimmed;
-  try {
-    return JSON.parse(candidate);
-  } catch {
-    return null;
-  }
-}
 
 function renderEvaluationMarkdown(ev: Evaluation): string {
   const lines = [
@@ -225,7 +215,7 @@ async function runWithRetry(
 }
 
 function parseEvaluation(text: string): Evaluation | null {
-  const json = tryParseJson(text);
+  const json = parseLLMJson(text);
   if (json === null) return null;
   const parsed = evaluationSchema.safeParse(json);
   return parsed.success ? parsed.data : null;

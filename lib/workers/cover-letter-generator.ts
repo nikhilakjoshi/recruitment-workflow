@@ -7,6 +7,7 @@ import {
 import { prisma } from "@/lib/db";
 import { emitEvent } from "@/lib/events";
 import { callLLM, type LLMMessage } from "@/lib/ai/client";
+import { parseLLMJson } from "@/lib/ai/parse-json";
 import { coverLetterSchema, type CoverLetter } from "@/lib/schemas/cover-letter";
 import {
   SYSTEM_PROMPT,
@@ -34,19 +35,8 @@ export type CoverLetterGeneratorOutput = {
   reason?: string;
 };
 
-function tryParseJson(text: string): unknown {
-  const trimmed = text.trim();
-  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-  const candidate = fenced ? fenced[1] : trimmed;
-  try {
-    return JSON.parse(candidate);
-  } catch {
-    return null;
-  }
-}
-
 function parseLetter(text: string): CoverLetter | null {
-  const json = tryParseJson(text);
+  const json = parseLLMJson(text);
   if (json === null) return null;
   const parsed = coverLetterSchema.safeParse(json);
   return parsed.success ? parsed.data : null;

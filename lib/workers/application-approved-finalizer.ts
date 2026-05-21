@@ -7,7 +7,7 @@ import {
 import { prisma } from "@/lib/db";
 import { transition } from "@/lib/state-machine/application";
 import { canTransition } from "@/lib/state-machine/transitions-table";
-import type { Worker, WorkerScope } from "./types";
+import type { Worker } from "./types";
 import { EMPTY_SCOPE } from "./types";
 
 export type ApplicationApprovedFinalizerOutput = {
@@ -15,15 +15,13 @@ export type ApplicationApprovedFinalizerOutput = {
   reason?: string;
 };
 
-const finalizerScope: WorkerScope = EMPTY_SCOPE;
-
 export const applicationApprovedFinalizerWorker: Worker<
   unknown,
   ApplicationApprovedFinalizerOutput
 > = {
   name: "application-approved-finalizer",
   runtime: "per-application",
-  scope: finalizerScope,
+  scope: EMPTY_SCOPE,
   model: "cheap",
   subscribes: [EventType.COVER_LETTER_APPROVED],
   async run(ctx) {

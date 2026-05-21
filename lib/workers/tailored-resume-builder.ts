@@ -9,6 +9,7 @@ import { prisma } from "@/lib/db";
 import { emitEvent } from "@/lib/events";
 import { transition } from "@/lib/state-machine/application";
 import { callLLM, type LLMMessage } from "@/lib/ai/client";
+import { parseLLMJson } from "@/lib/ai/parse-json";
 import {
   tailoredResumeSchema,
   type TailoredResume,
@@ -36,19 +37,8 @@ export type TailoredResumeBuilderOutput = {
   reason?: string;
 };
 
-function tryParseJson(text: string): unknown {
-  const trimmed = text.trim();
-  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-  const candidate = fenced ? fenced[1] : trimmed;
-  try {
-    return JSON.parse(candidate);
-  } catch {
-    return null;
-  }
-}
-
 function parseResume(text: string): TailoredResume | null {
-  const json = tryParseJson(text);
+  const json = parseLLMJson(text);
   if (json === null) return null;
   const parsed = tailoredResumeSchema.safeParse(json);
   return parsed.success ? parsed.data : null;
