@@ -36,11 +36,10 @@ export async function POST(req: Request) {
     return jsonError("Invalid multipart body", 400);
   }
 
-  const fileEntry = form.get("file");
-  if (!fileEntry || typeof fileEntry === "string") {
+  const file = form.get("file");
+  if (!file || typeof file === "string") {
     return jsonError("Missing 'file' field", 400);
   }
-  const file = fileEntry as File;
 
   if (file.type !== "application/pdf") {
     return jsonError("File must be application/pdf", 400);
