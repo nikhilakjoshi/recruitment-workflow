@@ -105,3 +105,28 @@ export type Worker<TInput = unknown, TOutput = unknown> = {
 export const EMPTY_SCOPE: WorkerScope = {
   candidate: { masterCV: false, rolePreference: false },
 };
+
+// Scheduled workers run on a cron schedule, not in response to events.
+// They have no triggering Event, but still receive the Candidate they run
+// against (single-tenant: there's only one).
+export type ScheduledWorkerContext = {
+  candidate: Candidate;
+  scopedMemory: ScopedMemory;
+  runAt: Date;
+};
+
+export type ScheduledWorkerResult<TOutput = unknown> = {
+  output: TOutput;
+  events?: EventEmission[];
+  notifications?: WorkerNotification[];
+};
+
+export type ScheduledWorker<TOutput = unknown> = {
+  name: WorkerName;
+  schedule: string;
+  runtime: WorkerRuntime;
+  model: ModelChoice;
+  scope?: WorkerScope;
+  timeoutMs?: number;
+  run(ctx: ScheduledWorkerContext): Promise<ScheduledWorkerResult<TOutput>>;
+};

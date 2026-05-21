@@ -2,12 +2,15 @@ import { afterEach, describe, expect, it } from "vitest";
 import { EventType } from "@prisma/client";
 import {
   _resetRegistryForTests,
+  getScheduledWorker,
   getWorker,
+  listScheduledWorkers,
   listWorkers,
+  registerScheduledWorker,
   registerWorker,
   workersForEvent,
 } from "./registry";
-import { EMPTY_SCOPE, type Worker } from "./types";
+import { EMPTY_SCOPE, type ScheduledWorker, type Worker } from "./types";
 
 function makeWorker(name: string, subscribes: EventType[]): Worker {
   return {
@@ -63,5 +66,49 @@ describe("worker registry", () => {
       },
     });
     expect(workersForEvent(EventType.JOB_DISCOVERED)).toHaveLength(0);
+  });
+});
+
+function makeScheduledWorker(name: string, schedule: string): ScheduledWorker {
+  return {
+    name,
+    schedule,
+    runtime: "always-on",
+    model: "cheap",
+    async run() {
+      return { output: null };
+    },
+  };
+}
+
+describe("scheduled worker registry", () => {
+  it("registers and retrieves a scheduled worker by name", () => {
+    const w = makeScheduledWorker("daily-tick", "0 8 * * *");
+    registerScheduledWorker(w);
+    expect(getScheduledWorker("daily-tick")).toBe(w);
+    expect(listScheduledWorkers()).toHaveLength(1);
+  });
+
+  it("throws on duplicate scheduled worker name", () => {
+    registerScheduledWorker(makeScheduledWorker("dup-s", "0 8 * * *"));
+    expect(() =>
+      registerScheduledWorker(makeScheduledWorker("dup-s", "0 8 * * *")),
+    ).toThrowError(/already registered/);
+  });
+
+  it("keeps event-driven and scheduled registries separate", () => {
+    registerWorker({
+      name: "shared-name",
+      runtime: "always-on",
+      scope: EMPTY_SCOPE,
+      model: "cheap",
+      subscribes: [EventType.JOB_DISCOVERED],
+      async run() {
+        return { output: null };
+      },
+    });
+    registerScheduledWorker(makeScheduledWorker("shared-name", "0 8 * * *"));
+    expect(getWorker("shared-name")?.subscribes).toEqual([EventType.JOB_DISCOVERED]);
+    expect(getScheduledWorker("shared-name")?.schedule).toBe("0 8 * * *");
   });
 });

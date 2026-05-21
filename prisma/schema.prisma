@@ -127,6 +127,7 @@ enum InsightType {
   NARRATIVE_THEME
   COMP_TREND
   RECRUITER_RESPONSE_PATTERN
+  WEEKLY_DIGEST
 }
 
 enum EventConsumptionStatus {
@@ -196,6 +197,8 @@ model Opportunity {
   jdStructuredJson Json?
   dismissed        Boolean                      @default(false)
   discoveredAt     DateTime                     @default(now())
+  rankScore        Int?
+  rankReason       String?
   embedding        Unsupported("vector(1536)")?
   applications     Application[]
 }
@@ -216,11 +219,25 @@ model Application {
   artifacts          Artifact[]
   interviews         Interview[]
   events             Event[]
+  followUps          FollowUp[]
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
 
   @@unique([candidateId, opportunityId])
   @@index([state])
+}
+
+model FollowUp {
+  id              String      @id @default(cuid())
+  applicationId   String
+  application     Application @relation(fields: [applicationId], references: [id])
+  reason          String      @db.Text
+  suggestedAction String
+  acknowledged    Boolean     @default(false)
+  acknowledgedAt  DateTime?
+  createdAt       DateTime    @default(now())
+
+  @@index([acknowledged, createdAt])
 }
 
 model Artifact {

@@ -1,12 +1,34 @@
-import { LayoutDashboard } from "lucide-react";
-import { EmptyState } from "@/components/empty-state";
+import { redirect } from "next/navigation";
+import { getSession } from "@/lib/auth/session";
+import { prisma } from "@/lib/db";
+import { ActiveApplicationsSection } from "@/components/dashboard/active-applications";
+import { PendingApprovalsSection } from "@/components/dashboard/pending-approvals";
+import { RecruiterActivitySection } from "@/components/dashboard/recruiter-activity";
+import { UpcomingInterviewsSection } from "@/components/dashboard/upcoming-interviews";
+import { OpportunityDigestSection } from "@/components/dashboard/opportunity-digest";
+import { FollowUpAlertsSection } from "@/components/dashboard/follow-up-alerts";
+import { StrategicInsightsSection } from "@/components/dashboard/strategic-insights";
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const session = await getSession();
+  if (!session.userId) redirect("/signin");
+
+  const candidate = await prisma.candidate.findUniqueOrThrow({
+    where: { userId: session.userId },
+    select: { id: true },
+  });
+
   return (
-    <EmptyState
-      icon={LayoutDashboard}
-      title="Your dashboard is empty"
-      description="Once you import a Master CV and start tracking opportunities, this page will show top suggestions, pending approvals, and live application status."
-    />
+    <div className="grid gap-4 lg:grid-cols-2">
+      <ActiveApplicationsSection candidateId={candidate.id} />
+      <PendingApprovalsSection candidateId={candidate.id} />
+      <RecruiterActivitySection />
+      <UpcomingInterviewsSection />
+      <OpportunityDigestSection />
+      <FollowUpAlertsSection candidateId={candidate.id} />
+      <div className="lg:col-span-2">
+        <StrategicInsightsSection candidateId={candidate.id} />
+      </div>
+    </div>
   );
 }
