@@ -1,8 +1,4 @@
-import {
-  EventType,
-  OpportunitySource,
-  type RolePreference,
-} from "@prisma/client";
+import { EventType, type RolePreference } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { emitEvent } from "@/lib/events";
 import { callLLM, type LLMMessage } from "@/lib/ai/client";
@@ -211,10 +207,3 @@ export const jobAlertAggregatorWorker: ScheduledWorker<AggregatorRunOutput> = {
     return { output: summary };
   },
 };
-
-// Re-export the constant for tests that want to assert source coverage.
-export const KNOWN_SOURCES = [
-  OpportunitySource.LINKEDIN,
-  OpportunitySource.INDEED,
-  OpportunitySource.WELLFOUND,
-] as const;

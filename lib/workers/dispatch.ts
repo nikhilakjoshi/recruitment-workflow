@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { listWorkers } from "./registry";
 import { resolveScopedMemory } from "./scoped-memory";
 import type { GovernanceConstraints, Worker, WorkerContext } from "./types";
+import { withTimeout } from "./with-timeout";
 
 const DEFAULT_TIMEOUT_MS = 50_000;
 const DEFAULT_TOKEN_BUDGET = 30_000;
@@ -36,25 +37,6 @@ async function buildContext(worker: Worker, event: Event): Promise<WorkerContext
     governance,
     input: event.payloadJson,
   };
-}
-
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(
-      () => reject(new Error(`Worker timed out after ${ms}ms`)),
-      ms,
-    );
-    promise.then(
-      (v) => {
-        clearTimeout(timer);
-        resolve(v);
-      },
-      (err) => {
-        clearTimeout(timer);
-        reject(err);
-      },
-    );
-  });
 }
 
 async function pendingEventsForWorker(worker: Worker): Promise<Event[]> {

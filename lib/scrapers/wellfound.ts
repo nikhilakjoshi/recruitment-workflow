@@ -1,5 +1,5 @@
 import { OpportunitySource, type RolePreference } from "@prisma/client";
-import { decode } from "./html-entities";
+import { decode, stripTags } from "./html-entities";
 import type { JobSearchAdapter, RawListing } from "./types";
 
 // Wellfound renders each posting as a <div data-test="JobSearchCard">
@@ -13,10 +13,6 @@ const COMPANY_PATTERN =
   /<a[^>]*data-test="startup-link"[^>]*>([\s\S]*?)<\/a>/;
 const SNIPPET_PATTERN =
   /<div[^>]*data-test="job-description"[^>]*>([\s\S]*?)<\/div>/;
-
-function stripTags(s: string): string {
-  return s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-}
 
 function extractCard(cardHtml: string): RawListing | null {
   const title = TITLE_PATTERN.exec(cardHtml);

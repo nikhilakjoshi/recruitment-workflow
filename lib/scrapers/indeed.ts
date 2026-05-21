@@ -1,5 +1,5 @@
 import { OpportunitySource, type RolePreference } from "@prisma/client";
-import { decode } from "./html-entities";
+import { decode, stripTags } from "./html-entities";
 import type { JobSearchAdapter, RawListing } from "./types";
 
 // Indeed renders each result row as a <td class="resultContent"> inside
@@ -14,10 +14,6 @@ const COMPANY_PATTERN =
 const SNIPPET_PATTERN =
   /<div[^>]*class="[^"]*job-snippet[^"]*"[^>]*>([\s\S]*?)<\/div>/;
 const HREF_PATTERN = /<a[^>]*data-jk="([^"]+)"/;
-
-function stripTags(s: string): string {
-  return s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-}
 
 function extractCard(cardHtml: string): RawListing | null {
   const title = TITLE_PATTERN.exec(cardHtml);

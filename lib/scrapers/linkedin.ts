@@ -1,5 +1,5 @@
 import { OpportunitySource, type RolePreference } from "@prisma/client";
-import { decode } from "./html-entities";
+import { decode, stripTags } from "./html-entities";
 import type { JobSearchAdapter, RawListing } from "./types";
 
 // LinkedIn public job listings render each card with a base-card structure
@@ -17,10 +17,6 @@ const SNIPPET_PATTERN =
   /<p[^>]*class="[^"]*base-search-card__snippet[^"]*"[^>]*>([\s\S]*?)<\/p>/;
 const HREF_PATTERN =
   /<a[^>]*class="[^"]*base-card__full-link[^"]*"[^>]*href="([^"]+)"/;
-
-function stripTags(s: string): string {
-  return s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-}
 
 function extractCard(cardHtml: string): RawListing | null {
   const title = TITLE_PATTERN.exec(cardHtml);

@@ -1,7 +1,9 @@
+import type { Event } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { resolveScopedMemory } from "./scoped-memory";
 import { getScheduledWorker } from "./registry";
 import { EMPTY_SCOPE, type ScheduledWorker, type ScheduledWorkerContext } from "./types";
+import { withTimeout } from "./with-timeout";
 
 const DEFAULT_TIMEOUT_MS = 50_000;
 const DEFAULT_TOKEN_BUDGET = 30_000;
@@ -12,25 +14,6 @@ export type ScheduledRunResult = {
   durationMs: number;
   error?: string;
 };
-
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(
-      () => reject(new Error(`Worker timed out after ${ms}ms`)),
-      ms,
-    );
-    promise.then(
-      (v) => {
-        clearTimeout(timer);
-        resolve(v);
-      },
-      (err) => {
-        clearTimeout(timer);
-        reject(err);
-      },
-    );
-  });
-}
 
 async function buildContext(worker: ScheduledWorker): Promise<ScheduledWorkerContext> {
   // Single-tenant: the candidate is the most-recently-updated row. If there
@@ -43,15 +26,16 @@ async function buildContext(worker: ScheduledWorker): Promise<ScheduledWorkerCon
   }
 
   const scope = worker.scope ?? EMPTY_SCOPE;
-  const scopedMemory = await resolveScopedMemory(
-    scope,
-    // Synthesize a minimal event-shaped object so resolveScopedMemory can
-    // address the candidate without us needing a real triggering event.
-    { id: "", candidateId: candidate.id, applicationId: null } as unknown as Parameters<
-      typeof resolveScopedMemory
-    >[1],
-    { maxTokens: DEFAULT_TOKEN_BUDGET },
-  );
+  // Synthesize a minimal event-shaped object so resolveScopedMemory can
+  // address the candidate without us needing a real triggering event.
+  const syntheticEvent = {
+    id: "",
+    candidateId: candidate.id,
+    applicationId: null,
+  } as unknown as Event;
+  const scopedMemory = await resolveScopedMemory(scope, syntheticEvent, {
+    maxTokens: DEFAULT_TOKEN_BUDGET,
+  });
 
   return {
     candidate,

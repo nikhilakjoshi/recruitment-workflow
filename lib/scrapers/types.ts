@@ -18,11 +18,3 @@ export type JobSearchAdapter = {
   searchJobs(rolePrefs: RolePreference): Promise<RawListing[]>;
   parseHtml(html: string): RawListing[];
 };
-
-// Inputs passed to the aggregator's per-source scrape call. We only need
-// the role-preference fields that drive the URL — the adapter decides
-// what to use.
-export type SearchInputs = Pick<
-  RolePreference,
-  "targetRoles" | "geoLocations" | "remotePolicy"
->;
