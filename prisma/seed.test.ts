@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 beforeAll(async () => {
   // Start each test run from a known state. The DB is dev-only and shared with
   // dev. We clean only the rows the seed touches.
-  await prisma.event.deleteMany({});
+  await prisma.$executeRawUnsafe('TRUNCATE TABLE "Event" CASCADE');
   await prisma.application.deleteMany({});
   await prisma.opportunity.deleteMany({});
   await prisma.candidate.deleteMany({});
