@@ -18,8 +18,11 @@ export async function proxy(req: NextRequest) {
     return new NextResponse("Cross-origin request blocked", { status: 403 });
   }
 
+  const forwardedHeaders = new Headers(req.headers);
+  forwardedHeaders.set("x-pathname", req.nextUrl.pathname);
+
   if (isPublic(req.nextUrl.pathname)) {
-    return NextResponse.next();
+    return NextResponse.next({ request: { headers: forwardedHeaders } });
   }
 
   let password: string;
@@ -29,7 +32,7 @@ export async function proxy(req: NextRequest) {
     return new NextResponse("AUTH_SECRET not configured", { status: 500 });
   }
 
-  const res = NextResponse.next();
+  const res = NextResponse.next({ request: { headers: forwardedHeaders } });
   const session = await getIronSession<SessionData>(req, res, {
     password,
     cookieName: SESSION_COOKIE_NAME,

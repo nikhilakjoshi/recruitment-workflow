@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
@@ -17,8 +18,22 @@ export default async function AuthedLayout({
 
   const user = await prisma.user.findUniqueOrThrow({
     where: { id: session.userId },
-    select: { email: true },
+    select: {
+      email: true,
+      candidate: {
+        select: {
+          id: true,
+          rolePreference: { select: { id: true } },
+        },
+      },
+    },
   });
+
+  const pathname = (await headers()).get("x-pathname") ?? "";
+  const hasRolePreference = Boolean(user.candidate?.rolePreference);
+  if (!hasRolePreference && pathname !== "/profile") {
+    redirect("/profile?reason=incomplete");
+  }
 
   return (
     <SidebarProvider>

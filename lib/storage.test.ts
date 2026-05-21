@@ -11,7 +11,8 @@ vi.mock("./storage/bucket", () => ({
   getBucket: vi.fn(() => ({ name: "test-bucket", file: fileMock })),
 }));
 
-import { getSignedReadUrl, uploadMasterCV } from "./storage";
+import { ArtifactType } from "@prisma/client";
+import { getSignedReadUrl, uploadArtifact, uploadMasterCV } from "./storage";
 
 describe("uploadMasterCV", () => {
   beforeEach(() => {
@@ -40,6 +41,46 @@ describe("uploadMasterCV", () => {
     expect(result.signedReadUrl).toBe("https://signed.example.com/master-cv/u1.pdf");
     expect(result.filename).toBe(savedKey.slice("master-cv/".length));
     expect(result.sizeBytes).toBe(4);
+  });
+});
+
+describe("uploadArtifact", () => {
+  beforeEach(() => {
+    saveMock.mockReset().mockResolvedValue(undefined);
+    getSignedUrlMock
+      .mockReset()
+      .mockResolvedValue(["https://signed.example.com/artifact"]);
+    fileMock.mockClear();
+  });
+
+  it("writes to artifacts/<applicationId>/<type>-<ISO>.pdf for PDFs", async () => {
+    const file = new File([new Uint8Array([0x25, 0x50, 0x44, 0x46])], "resume.pdf", {
+      type: "application/pdf",
+    });
+    const result = await uploadArtifact("app-1", ArtifactType.TAILORED_RESUME, file, "application/pdf");
+
+    const savedKey = String(fileMock.mock.calls[0][0]);
+    expect(savedKey).toMatch(/^artifacts\/app-1\/tailored_resume-\d{4}-\d{2}-\d{2}T.*\.pdf$/);
+    expect(saveMock).toHaveBeenCalledWith(
+      expect.any(Buffer),
+      expect.objectContaining({ contentType: "application/pdf", resumable: false }),
+    );
+    expect(result.gcsUri).toBe(`gs://test-bucket/${savedKey}`);
+  });
+
+  it("uses .txt extension for text/plain and .md for text/markdown", async () => {
+    const txt = new File([new TextEncoder().encode("hi")], "x.txt", { type: "text/plain" });
+    await uploadArtifact("app-1", ArtifactType.COVER_LETTER, txt, "text/plain");
+    expect(String(fileMock.mock.calls[0][0])).toMatch(
+      /^artifacts\/app-1\/cover_letter-.*\.txt$/,
+    );
+
+    fileMock.mockClear();
+    const md = new File([new TextEncoder().encode("# hi")], "x.md", { type: "text/markdown" });
+    await uploadArtifact("app-1", ArtifactType.RECRUITER_REPLY, md, "text/markdown");
+    expect(String(fileMock.mock.calls[0][0])).toMatch(
+      /^artifacts\/app-1\/recruiter_reply-.*\.md$/,
+    );
   });
 });
 

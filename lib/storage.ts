@@ -1,4 +1,9 @@
+import type { ArtifactType } from "@prisma/client";
 import { getBucket } from "./storage/bucket";
+import {
+  type AllowedMimeType,
+  extensionFor,
+} from "./schemas/artifact-upload";
 
 export type UploadResult = {
   gcsUri: string;
@@ -47,6 +52,36 @@ export async function uploadMasterCV(
     gcsUri,
     signedReadUrl,
     filename: objectKey.slice("master-cv/".length),
+    sizeBytes: buffer.byteLength,
+  };
+}
+
+export async function uploadArtifact(
+  applicationId: string,
+  artifactType: ArtifactType,
+  file: File,
+  mime: AllowedMimeType,
+): Promise<UploadResult> {
+  const bucket = getBucket();
+  const timestamp = new Date().toISOString();
+  const ext = extensionFor(mime);
+  const typeKey = artifactType.toLowerCase();
+  const objectKey = `artifacts/${applicationId}/${typeKey}-${timestamp}.${ext}`;
+  const arrayBuffer = await file.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+
+  await bucket.file(objectKey).save(buffer, {
+    contentType: mime,
+    resumable: false,
+  });
+
+  const gcsUri = buildGcsUri(bucket.name, objectKey);
+  const signedReadUrl = await getSignedReadUrl(gcsUri);
+
+  return {
+    gcsUri,
+    signedReadUrl,
+    filename: objectKey.slice(`artifacts/${applicationId}/`.length),
     sizeBytes: buffer.byteLength,
   };
 }
