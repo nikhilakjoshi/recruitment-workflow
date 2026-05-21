@@ -17,7 +17,7 @@ function pickRoleFamily(snapshot: unknown): string {
   const obj = snapshot as Record<string, unknown>;
   const roles = obj.targetRoles;
   if (Array.isArray(roles) && roles.length > 0 && typeof roles[0] === "string") {
-    return (roles[0] as string).trim() || "(unspecified)";
+    return roles[0].trim() || "(unspecified)";
   }
   return "(unspecified)";
 }

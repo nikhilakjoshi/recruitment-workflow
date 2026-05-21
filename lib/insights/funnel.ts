@@ -79,8 +79,12 @@ export function computeFunnel(
   return FUNNEL_STAGES.map((stage, i) => {
     const count = counts[stage];
     const prev = i > 0 ? counts[FUNNEL_STAGES[i - 1]] : null;
-    const conversionFromPrev =
-      prev && prev > 0 ? Math.round((count / prev) * 100) : prev === 0 ? 0 : null;
-    return { stage, count, conversionFromPrev };
+    return { stage, count, conversionFromPrev: pctFromPrev(count, prev) };
   });
+}
+
+function pctFromPrev(count: number, prev: number | null): number | null {
+  if (prev === null) return null;
+  if (prev === 0) return 0;
+  return Math.round((count / prev) * 100);
 }
