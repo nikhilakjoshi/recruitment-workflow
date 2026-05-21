@@ -19,16 +19,18 @@ const fakeGenerate = vi.fn(async (args: unknown) => {
       totalTokens: 1200,
     },
   };
-}) as unknown as Parameters<typeof _setGenerateTextForTests>[0];
+});
 
 beforeAll(() => {
-  _setGenerateTextForTests(fakeGenerate);
+  _setGenerateTextForTests(
+    fakeGenerate as unknown as Parameters<typeof _setGenerateTextForTests>[0],
+  );
 });
 
 beforeEach(async () => {
   await prisma.lLMCall.deleteMany({});
   received = null;
-  (fakeGenerate as unknown as { mockClear: () => void }).mockClear();
+  fakeGenerate.mockClear();
 });
 
 afterEach(async () => {
