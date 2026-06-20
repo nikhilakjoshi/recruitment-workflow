@@ -24,6 +24,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
+import { Logo } from "@/components/logo";
 
 type NavItem = {
   label: string;
@@ -53,6 +54,7 @@ export function AppSidebar() {
     <Sidebar collapsible="offcanvas">
       <SidebarHeader>
         <div className="flex items-center gap-2 px-2 py-1">
+          <Logo className="size-5 text-primary" />
           <span className="font-semibold tracking-tight">Career OS</span>
           <Badge variant="secondary" className="text-[10px]">
             v0

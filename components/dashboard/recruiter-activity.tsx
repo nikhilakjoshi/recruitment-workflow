@@ -49,7 +49,7 @@ export async function RecruiterActivitySection({ candidateId }: { candidateId: s
                 )}
               </span>
               <span className="text-xs text-muted-foreground">
-                {new Date(e.emittedAt).toLocaleString()}
+                {new Date(e.emittedAt).toLocaleString("en-US")}
               </span>
             </li>
           ))}

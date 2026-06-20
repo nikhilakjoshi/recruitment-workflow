@@ -38,7 +38,7 @@ export async function ActiveApplicationsSection({ candidateId }: { candidateId: 
                 <div className="flex flex-col">
                   <span className="text-sm font-medium">{a.opportunity.title}</span>
                   <span className="text-xs text-muted-foreground">
-                    {a.opportunity.company} · {a.updatedAt.toLocaleDateString()}
+                    {a.opportunity.company} · {a.updatedAt.toLocaleDateString("en-US")}
                   </span>
                 </div>
                 <Badge>{a.state}</Badge>

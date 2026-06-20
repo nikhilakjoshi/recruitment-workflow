@@ -94,7 +94,7 @@ describe("callLLM", () => {
     expect(row.cachedTokens).toBe(600);
     expect(row.outputTokens).toBe(200);
 
-    const expectedCost = estimateCostUsd("standard", 1000, 600, 200);
+    const expectedCost = estimateCostUsd("anthropic", "standard", 1000, 600, 200);
     expect(Number(row.costUsd)).toBeCloseTo(expectedCost, 6);
     expect(row.durationMs).toBeGreaterThanOrEqual(0);
   });
@@ -108,6 +108,6 @@ describe("callLLM", () => {
 
     expect(result.text).toBe("ok");
     expect(result.usage).toEqual({ inputTokens: 1000, outputTokens: 200, cachedTokens: 600 });
-    expect(result.estimatedCostUsd).toBe(estimateCostUsd("cheap", 1000, 600, 200));
+    expect(result.estimatedCostUsd).toBe(estimateCostUsd("anthropic", "cheap", 1000, 600, 200));
   });
 });

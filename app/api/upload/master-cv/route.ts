@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import pdfParse from "pdf-parse";
 import { getSession } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { uploadMasterCV } from "@/lib/storage";
@@ -54,6 +55,22 @@ export async function POST(req: Request) {
     return jsonError("File is not a valid PDF (magic bytes mismatch)", 400);
   }
 
+  let extractedText: string;
+  try {
+    const result = await pdfParse(Buffer.from(buffer));
+    extractedText = result.text.trim();
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown PDF parse error";
+    return jsonError(`Failed to extract text from PDF: ${message}`, 422);
+  }
+
+  if (extractedText.length === 0) {
+    return jsonError(
+      "PDF parsed but no text content found. Is this a scanned/image-only PDF?",
+      422,
+    );
+  }
+
   const rebuiltFile = new File([buffer], file.name, { type: "application/pdf" });
   const result = await uploadMasterCV(session.userId, rebuiltFile);
 
@@ -66,14 +83,15 @@ export async function POST(req: Request) {
     where: { candidateId: candidate.id },
     create: {
       candidateId: candidate.id,
-      rawText: "",
+      rawText: extractedText,
       structuredJson: {},
       gcsUri: result.gcsUri,
     },
     update: {
+      rawText: extractedText,
       gcsUri: result.gcsUri,
     },
   });
 
-  return NextResponse.json(result);
+  return NextResponse.json({ ...result, charCount: extractedText.length });
 }

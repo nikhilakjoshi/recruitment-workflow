@@ -4,7 +4,7 @@ import type { SessionData } from "@/lib/auth/session";
 import { SESSION_COOKIE_NAME, readAuthSecret } from "@/lib/auth/session-config";
 import { isSameOrigin } from "@/lib/auth/middleware-helpers";
 
-const PUBLIC_PATHS = new Set<string>(["/signin"]);
+const PUBLIC_PATHS = new Set<string>(["/signin", "/walkthrough"]);
 const PUBLIC_PREFIXES = ["/api/auth/", "/api/cron/", "/_next/", "/favicon"];
 const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 

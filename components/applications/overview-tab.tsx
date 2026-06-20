@@ -71,9 +71,9 @@ export function OverviewTab({
       </section>
 
       {snapshot && Object.keys(snapshot).length > 0 ? (
-        <section className="flex flex-col gap-2">
+        <section className="flex min-w-0 flex-col gap-2">
           <h3 className="text-sm font-medium">Role preference snapshot</h3>
-          <pre className="max-h-64 overflow-auto rounded-lg border border-input bg-muted/30 p-3 text-xs">
+          <pre className="max-h-64 min-w-0 overflow-auto rounded-lg border border-input bg-muted/30 p-3 text-xs whitespace-pre-wrap break-words">
             {JSON.stringify(snapshot, null, 2)}
           </pre>
         </section>
@@ -82,11 +82,22 @@ export function OverviewTab({
   );
 }
 
+const DATE_FORMAT: Intl.DateTimeFormatOptions = {
+  year: "numeric",
+  month: "short",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+};
+
 function KeyDate({ label, value }: { label: string; value: Date | null }) {
   return (
     <div className="flex flex-col gap-0.5">
       <span className="text-xs text-muted-foreground">{label}</span>
-      <span className="text-sm">{value ? new Date(value).toLocaleString() : "—"}</span>
+      <span className="text-sm">
+        {value ? new Date(value).toLocaleString("en-US", DATE_FORMAT) : "—"}
+      </span>
     </div>
   );
 }

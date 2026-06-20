@@ -47,7 +47,7 @@ function ActivityRow({ event }: { event: Event }) {
   return (
     <TableRow>
       <TableCell className="font-mono text-xs">
-        {new Date(event.emittedAt).toLocaleString()}
+        {new Date(event.emittedAt).toLocaleString("en-US")}
       </TableCell>
       <TableCell>
         <Badge variant="outline">{event.type}</Badge>

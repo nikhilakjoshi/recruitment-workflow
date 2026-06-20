@@ -8,6 +8,8 @@ import { UpcomingInterviewsSection } from "@/components/dashboard/upcoming-inter
 import { OpportunityDigestSection } from "@/components/dashboard/opportunity-digest";
 import { FollowUpAlertsSection } from "@/components/dashboard/follow-up-alerts";
 import { StrategicInsightsSection } from "@/components/dashboard/strategic-insights";
+import { BackgroundWorkersPanel } from "@/components/dashboard/background-workers";
+import { OpsActivityPanel } from "@/components/dashboard/ops-activity";
 
 export default async function DashboardPage() {
   const session = await getSession();
@@ -26,6 +28,10 @@ export default async function DashboardPage() {
       <UpcomingInterviewsSection candidateId={candidate.id} />
       <OpportunityDigestSection />
       <FollowUpAlertsSection candidateId={candidate.id} />
+      <BackgroundWorkersPanel />
+      <div className="lg:col-span-2">
+        <OpsActivityPanel />
+      </div>
       <div className="lg:col-span-2">
         <StrategicInsightsSection candidateId={candidate.id} />
       </div>

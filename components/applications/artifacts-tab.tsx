@@ -66,7 +66,7 @@ export function ArtifactsTab({ applicationId, artifacts }: Props) {
                   {a.generatedByWorker}
                 </TableCell>
                 <TableCell className="text-xs text-muted-foreground">
-                  {new Date(a.generatedAt).toLocaleString()}
+                  {new Date(a.generatedAt).toLocaleString("en-US")}
                 </TableCell>
                 <TableCell className="text-right">
                   <Button size="sm" variant="outline" onClick={() => setOpenId(a.id)}>

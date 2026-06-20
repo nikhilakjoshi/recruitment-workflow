@@ -8,8 +8,7 @@ import {
 import { prisma } from "@/lib/db";
 import { emitEvent } from "@/lib/events";
 import { transition } from "@/lib/state-machine/application";
-import { callLLM, type LLMMessage } from "@/lib/ai/client";
-import { parseLLMJson } from "@/lib/ai/parse-json";
+import { callLLMObject, type LLMMessage } from "@/lib/ai/client";
 import {
   evaluationSchema,
   fitFromScore,
@@ -17,7 +16,6 @@ import {
 } from "@/lib/schemas/evaluation";
 import {
   SYSTEM_PROMPT,
-  STRICT_REMINDER,
   buildCachedBlock,
   buildUncachedBlock,
 } from "./match-scorer.prompts";
@@ -68,7 +66,7 @@ export const matchScorerWorker: Worker<unknown, MatchScorerOutput> = {
   scope: matchScorerScope,
   model: "standard",
   subscribes: [EventType.APPLICATION_CREATED, EventType.EVALUATION_REGENERATION_REQUESTED],
-  timeoutMs: 50_000,
+  timeoutMs: 120_000,
   async run(ctx) {
     const application = ctx.scopedMemory.application;
     if (!application || !application.opportunity) {
@@ -94,7 +92,28 @@ export const matchScorerWorker: Worker<unknown, MatchScorerOutput> = {
       { role: "user", content: uncached },
     ];
 
-    const evaluation = await runWithRetry(ctx.event.id, application.id, baseMessages);
+    let evaluation: Evaluation | null = null;
+    try {
+      const result = await callLLMObject({
+        worker: "match-scorer",
+        model: "standard",
+        system: SYSTEM_PROMPT,
+        messages: baseMessages,
+        schema: evaluationSchema,
+        schemaName: "Evaluation",
+        schemaDescription: "Match evaluation of a candidate against a job description.",
+        maxTokens: 8_000,
+        temperature: 0.3,
+        eventId: ctx.event.id,
+        applicationId: application.id,
+      });
+      evaluation = result.object;
+    } catch (err) {
+      console.error(
+        "[match-scorer] structured output failed:",
+        err instanceof Error ? err.message : err,
+      );
+    }
     if (!evaluation) {
       await emitEvent({
         type: EventType.EVALUATION_GENERATION_FAILED,
@@ -178,45 +197,3 @@ export const matchScorerWorker: Worker<unknown, MatchScorerOutput> = {
     };
   },
 };
-
-async function runWithRetry(
-  eventId: string,
-  applicationId: string,
-  messages: LLMMessage[],
-): Promise<Evaluation | null> {
-  const first = await callLLM({
-    worker: "match-scorer",
-    model: "standard",
-    system: SYSTEM_PROMPT,
-    messages,
-    maxTokens: 2_000,
-    temperature: 0.3,
-    eventId,
-    applicationId,
-  });
-  const firstParsed = parseEvaluation(first.text);
-  if (firstParsed) return firstParsed;
-
-  const retryMessages: LLMMessage[] = [
-    ...messages,
-    { role: "user", content: STRICT_REMINDER },
-  ];
-  const second = await callLLM({
-    worker: "match-scorer",
-    model: "standard",
-    system: SYSTEM_PROMPT,
-    messages: retryMessages,
-    maxTokens: 2_000,
-    temperature: 0,
-    eventId,
-    applicationId,
-  });
-  return parseEvaluation(second.text);
-}
-
-function parseEvaluation(text: string): Evaluation | null {
-  const json = parseLLMJson(text);
-  if (json === null) return null;
-  const parsed = evaluationSchema.safeParse(json);
-  return parsed.success ? parsed.data : null;
-}

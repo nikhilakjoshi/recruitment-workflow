@@ -49,7 +49,7 @@ export function NotesTab({ interviewId, initialNotes }: Props) {
           {saving
             ? "Saving…"
             : savedAt
-              ? `Saved at ${new Date(savedAt).toLocaleTimeString()}`
+              ? `Saved at ${new Date(savedAt).toLocaleTimeString("en-US")}`
               : "Unsaved"}
         </span>
       </div>

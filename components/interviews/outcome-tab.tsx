@@ -106,7 +106,7 @@ export function OutcomeTab({ interviewId, applicationId, existing }: Props) {
         <p className="text-xs text-muted-foreground">
           Previously logged{" "}
           {existing.recordedAt
-            ? `at ${new Date(existing.recordedAt).toLocaleString()}`
+            ? `at ${new Date(existing.recordedAt).toLocaleString("en-US")}`
             : ""}{" "}
           as <span className="font-medium">{existing.outcome}</span>.
         </p>

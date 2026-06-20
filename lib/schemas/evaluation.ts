@@ -10,9 +10,9 @@ export const evaluationSchema = z.object({
   score: z.number().int().min(0).max(100),
   fit: z.enum(FIT_VALUES),
   confidence: z.enum(CONFIDENCE_VALUES),
-  strengths: z.array(z.string().min(5).max(300)).min(1).max(8),
-  gaps: z.array(z.string().min(5).max(300)).max(8),
-  rationale: z.string().min(50).max(1500),
+  strengths: z.array(z.string().min(5).max(600)).min(1).max(8),
+  gaps: z.array(z.string().min(5).max(600)).max(8),
+  rationale: z.string().min(50).max(4000),
 });
 
 export type Evaluation = z.infer<typeof evaluationSchema>;

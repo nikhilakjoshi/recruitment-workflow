@@ -40,7 +40,7 @@ export async function PendingApprovalsSection({ candidateId }: { candidateId: st
                   </span>
                   <span className="text-xs text-muted-foreground">
                     {a.application.opportunity.company} ·{" "}
-                    {a.generatedAt.toLocaleString()}
+                    {a.generatedAt.toLocaleString("en-US")}
                   </span>
                 </div>
                 <Badge>{a.type}</Badge>

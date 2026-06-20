@@ -83,7 +83,7 @@ export default async function InterviewWorkspacePage({
               {interview.application.opportunity.title} — Interview
             </h1>
             <p className="text-sm text-muted-foreground">
-              {new Date(interview.scheduledFor).toLocaleString()}
+              {new Date(interview.scheduledFor).toLocaleString("en-US")}
               {interview.recruiter ? ` · ${interview.recruiter.name}` : ""}
               {interview.durationMinutes
                 ? ` · ${interview.durationMinutes} min`

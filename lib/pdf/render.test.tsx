@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PDFParse } from "pdf-parse";
+import pdfParse from "pdf-parse";
 import { renderResumeToPDF, renderCoverLetterToPDF } from "./render";
 import type { TailoredResume } from "@/lib/schemas/tailored-resume";
 import type { CoverLetter } from "@/lib/schemas/cover-letter";
@@ -56,13 +56,8 @@ const LETTER: CoverLetter = {
 };
 
 async function extractText(buf: Buffer): Promise<string> {
-  const parser = new PDFParse({ data: new Uint8Array(buf) });
-  try {
-    const result = await parser.getText();
-    return result.text;
-  } finally {
-    await parser.destroy();
-  }
+  const result = await pdfParse(buf);
+  return result.text;
 }
 
 describe("PDF rendering", () => {

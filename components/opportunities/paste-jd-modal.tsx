@@ -71,7 +71,7 @@ export function PasteJdModal() {
           </Button>
         }
       />
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add opportunity</DialogTitle>
           <DialogDescription>
@@ -125,6 +125,7 @@ export function PasteJdModal() {
               id="jd-text"
               rows={10}
               placeholder="Paste the JD body here (≥ 50 chars)…"
+              className="max-h-72 resize-y"
               {...register("jdText")}
             />
             {formState.errors.jdText ? (

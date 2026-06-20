@@ -45,8 +45,8 @@ export async function StrategicInsightsSection({ candidateId }: { candidateId: s
           ) : null}
           {digest.weekStart && digest.weekEnd ? (
             <p className="text-xs text-muted-foreground/80">
-              Week of {new Date(digest.weekStart).toLocaleDateString()} →{" "}
-              {new Date(digest.weekEnd).toLocaleDateString()}
+              Week of {new Date(digest.weekStart).toLocaleDateString("en-US")} →{" "}
+              {new Date(digest.weekEnd).toLocaleDateString("en-US")}
             </p>
           ) : null}
         </div>

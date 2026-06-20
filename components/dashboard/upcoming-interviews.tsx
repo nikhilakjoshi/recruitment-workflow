@@ -44,7 +44,7 @@ export async function UpcomingInterviewsSection({ candidateId }: { candidateId: 
                   {iv.application.opportunity.title}
                 </Link>
                 <span className="text-xs text-muted-foreground">
-                  {new Date(iv.scheduledFor).toLocaleString()}
+                  {new Date(iv.scheduledFor).toLocaleString("en-US")}
                   {iv.durationMinutes ? ` · ${iv.durationMinutes} min` : ""}
                 </span>
               </div>

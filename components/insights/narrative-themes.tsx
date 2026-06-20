@@ -53,7 +53,7 @@ export function NarrativeThemes({ insight }: Props) {
         <ThemeList title="Fading" items={data.fading} variant="secondary" />
       </div>
       <p className="text-xs text-muted-foreground">
-        Generated {new Date(insight.generatedAt).toLocaleString()}
+        Generated {new Date(insight.generatedAt).toLocaleString("en-US")}
       </p>
     </div>
   );

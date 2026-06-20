@@ -2,6 +2,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UserMenu } from "@/components/user-menu";
+import { DispatchButton } from "@/components/dispatch-button";
 
 export function AppTopbar({ email }: { email: string }) {
   return (
@@ -12,7 +13,9 @@ export function AppTopbar({ email }: { email: string }) {
       <SidebarTrigger className="md:hidden" />
       <Separator orientation="vertical" className="mx-1 h-5 md:hidden" />
       <div className="flex flex-1 items-center" />
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-2">
+        <DispatchButton />
+        <Separator orientation="vertical" className="h-5" />
         <ThemeToggle />
         <UserMenu email={email} />
       </div>

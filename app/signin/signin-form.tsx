@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Logo } from "@/components/logo";
 
 export function SignInForm() {
   const router = useRouter();
@@ -41,8 +42,12 @@ export function SignInForm() {
     <main className="flex flex-1 items-center justify-center px-6 py-16">
       <Card className="w-full max-w-sm">
         <CardHeader>
+          <div className="mb-2 flex items-center gap-2">
+            <Logo className="size-6 text-primary" />
+            <span className="text-sm font-medium tracking-tight">Career OS</span>
+          </div>
           <CardTitle>Sign in</CardTitle>
-          <CardDescription>Career OS — single-user access.</CardDescription>
+          <CardDescription>Single-user access. By invitation.</CardDescription>
         </CardHeader>
         <CardContent>
           <form className="space-y-4" onSubmit={onSubmit}>
@@ -63,6 +68,12 @@ export function SignInForm() {
               {pending ? "Signing in..." : "Sign in"}
             </Button>
           </form>
+          <p className="mt-4 text-center text-xs text-muted-foreground">
+            First time?{" "}
+            <a href="/walkthrough" className="underline hover:text-foreground">
+              See the walkthrough
+            </a>
+          </p>
         </CardContent>
       </Card>
     </main>

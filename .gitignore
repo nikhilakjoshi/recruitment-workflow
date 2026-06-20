@@ -66,3 +66,4 @@ gcs-*.json
 
 /node_modules/.prisma/client
 .pnpm-store/
+.gstack/

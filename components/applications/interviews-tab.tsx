@@ -52,7 +52,7 @@ export function InterviewsTab({ applicationId, interviews }: Props) {
             </TableCell>
             <TableCell className="text-sm">{iv.recruiter?.name ?? "—"}</TableCell>
             <TableCell className="text-xs text-muted-foreground">
-              {new Date(iv.scheduledFor).toLocaleString()}
+              {new Date(iv.scheduledFor).toLocaleString("en-US")}
             </TableCell>
             <TableCell className="text-xs text-muted-foreground">
               {iv.durationMinutes ? `${iv.durationMinutes} min` : "—"}
